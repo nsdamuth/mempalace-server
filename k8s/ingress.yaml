@@ -1,0 +1,45 @@
+# ============================================================================
+# MemPalace — Ingress
+# ============================================================================
+# Exposes the MCP server at:
+#   https://xxx.de/mp/mcp        (POST — MCP JSON-RPC endpoint)
+#   https://xxx.de/mp/mcp/health (GET  — liveness probe, no auth)
+#
+# Requirements:
+#   - nginx ingress controller installed in the cluster
+#   - cert-manager installed (for automatic TLS via Let's Encrypt)
+#
+# Replace xxx.de with your actual domain name.
+# ============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mempalace
+  namespace: mempalace
+  annotations:
+    # nginx ingress controller
+    kubernetes.io/ingress.class: nginx
+    # Automatic TLS via cert-manager + Let's Encrypt
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Force HTTPS redirect
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    # No path rewriting — the app serves at /mp/mcp directly
+    nginx.ingress.kubernetes.io/use-regex: "false"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - xxx.de        # <-- replace with your domain
+      secretName: xxx-de-tls
+  rules:
+    - host: xxx.de      # <-- replace with your domain
+      http:
+        paths:
+          - path: /mp/mcp
+            pathType: Prefix
+            backend:
+              service:
+                name: mempalace
+                port:
+                  number: 80

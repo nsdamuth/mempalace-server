@@ -1,0 +1,85 @@
+# ============================================================================
+# MemPalace — PostgreSQL StatefulSet (pgvector + Apache AGE)
+#
+# Uses a custom image built from k8s/postgres/Dockerfile that layers
+# pgvector on top of apache/age:PG16_latest.
+#
+# Build and push before deploying:
+#   docker build -t your-registry.example.com/mempalace-postgres:latest \
+#     k8s/postgres/
+#   docker push your-registry.example.com/mempalace-postgres:latest
+# ============================================================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mempalace-db
+  namespace: mempalace
+  labels:
+    app: mempalace-db
+spec:
+  serviceName: mempalace-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mempalace-db
+  template:
+    metadata:
+      labels:
+        app: mempalace-db
+    spec:
+      securityContext:
+        fsGroup: 999          # postgres group
+
+      containers:
+        - name: postgres
+          # Replace with your registry / image tag
+          image: your-registry.example.com/mempalace-postgres:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5432
+              name: postgres
+
+          env:
+            - name: POSTGRES_DB
+              value: mempalace
+            - name: POSTGRES_USER
+              value: mempalace
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mempalace-secrets
+                  key: db-password
+
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+              subPath: pgdata      # avoids "lost+found" issue with some storage classes
+
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"
+
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "mempalace", "-d", "mempalace"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "mempalace", "-d", "mempalace"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+      volumes:
+        - name: pgdata
+          persistentVolumeClaim:
+            claimName: mempalace-db-pvc

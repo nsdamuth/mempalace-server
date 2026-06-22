@@ -1,0 +1,19 @@
+# ============================================================================
+# MemPalace — ClusterIP Service
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: mempalace
+  namespace: mempalace
+  labels:
+    app: mempalace
+spec:
+  type: ClusterIP
+  selector:
+    app: mempalace
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+      protocol: TCP

@@ -1,0 +1,18 @@
+# ============================================================================
+# MemPalace — PersistentVolumeClaim for palace data
+# ============================================================================
+# Stores ChromaDB vector data, SQLite knowledge graph, and palace YAML files.
+# ReadWriteOnce: single-pod access only (matches workers=1 in Dockerfile).
+# ============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mempalace-palace-pvc
+  namespace: mempalace
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  # storageClassName: standard   # uncomment and adjust for your cluster

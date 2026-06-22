@@ -1,0 +1,112 @@
+# ============================================================================
+# MemPalace Go Server — Deployment
+#
+# Stateless: all state lives in PostgreSQL. Can be scaled freely.
+# Memory footprint: ~50 MB (Go binary, no runtime/model loaded).
+#
+# Build and push:
+#   docker build -t your-registry.example.com/mempalace-go:latest server/
+#   docker push your-registry.example.com/mempalace-go:latest
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mempalace
+  namespace: mempalace
+  labels:
+    app: mempalace
+spec:
+  replicas: 2                # stateless — scale freely
+  selector:
+    matchLabels:
+      app: mempalace
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: mempalace
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      containers:
+        - name: mempalace
+          # Replace with your actual image name / registry
+          image: your-registry.example.com/mempalace-go:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: http
+
+          env:
+            # -- Auth --
+            - name: MCP_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mempalace-secrets
+                  key: api-key
+
+            # -- Database --
+            - name: MEMPALACE_DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: mempalace-secrets
+                  key: db-url
+
+            # -- Multi-tenancy --
+            - name: MEMPALACE_TENANT_ID
+              value: "default"           # one value per deployment, or use per-tenant deployments
+
+            # -- Embedding API --
+            # Compatible with Ollama, LM Studio, OpenAI, LocalAI, etc.
+            - name: EMBED_API_URL
+              value: "http://ollama.mempalace.svc.cluster.local:11434/v1"
+            - name: EMBED_MODEL
+              value: "nomic-embed-text"
+            - name: EMBED_DIM
+              value: "768"
+            # - name: EMBED_API_KEY
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: mempalace-secrets
+            #       key: embed-api-key   # only needed for OpenAI
+
+            # -- Tuning --
+            - name: MEMPALACE_HNSW_EF_SEARCH
+              value: "100"
+            - name: MEMPALACE_PG_POOL_MIN
+              value: "2"
+            - name: MEMPALACE_PG_POOL_MAX
+              value: "10"
+
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+
+          livenessProbe:
+            httpGet:
+              path: /mp/mcp/health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /mp/mcp/health
+              port: 8000
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3

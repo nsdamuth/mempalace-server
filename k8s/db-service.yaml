@@ -1,0 +1,19 @@
+# ClusterIP Service — only reachable inside the cluster.
+# The Go server connects via MEMPALACE_DB_URL using this DNS name:
+#   postgres://mempalace:<password>@mempalace-db.mempalace.svc.cluster.local:5432/mempalace
+apiVersion: v1
+kind: Service
+metadata:
+  name: mempalace-db
+  namespace: mempalace
+  labels:
+    app: mempalace-db
+spec:
+  type: ClusterIP
+  selector:
+    app: mempalace-db
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
