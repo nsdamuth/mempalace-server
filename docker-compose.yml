@@ -48,12 +48,12 @@ services:
       # EMBED_DIM must equal the model's output; cannot exceed it.
       # embeddinggemma supports Matryoshka truncation DOWN to 512 / 256 / 128
       # (smaller = faster & less storage, slightly lower quality). Not larger.
-      EMBED_API_URL:        "http://localhost:11434/v1"
+      EMBED_API_URL:        "http://host.docker.internal:11434/v1"
       EMBED_MODEL:          "embeddinggemma"
       EMBED_DIM:            "768"
       # Optional plain REST/JSON API at /mp/api/v1 (MCP is always on).
       # Set to "true" to enable. Uses the same MCP_API_KEY for auth.
-      ENABLE_REST_API:      "false"
+      ENABLE_REST_API:      "true"
       # Multi-tenancy
       MEMPALACE_TENANT_ID:  "default"
       # Tuning
