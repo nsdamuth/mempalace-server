@@ -81,6 +81,11 @@ spec:
             #       name: mempalace-secrets
             #       key: embed-api-key   # only needed for OpenAI
 
+            # -- Optional plain REST/JSON API at /mp/api/v1 (MCP is always on) --
+            # Uses the same MCP_API_KEY for auth. Set "true" to enable.
+            - name: ENABLE_REST_API
+              value: "false"
+
             # -- Tuning --
             - name: MEMPALACE_HNSW_EF_SEARCH
               value: "100"

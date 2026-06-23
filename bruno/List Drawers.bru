@@ -1,0 +1,18 @@
+meta {
+  name: List Drawers
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/mp/api/v1/drawers?wing=project-x&limit=20&offset=0
+  body: none
+  auth: inherit
+}
+
+params:query {
+  wing: project-x
+  limit: 20
+  offset: 0
+  ~room: decisions
+}

@@ -1,0 +1,15 @@
+meta {
+  name: List Rooms
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/mp/api/v1/rooms?wing=project-x
+  body: none
+  auth: inherit
+}
+
+params:query {
+  wing: project-x
+}

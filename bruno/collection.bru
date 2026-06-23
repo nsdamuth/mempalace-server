@@ -1,0 +1,22 @@
+headers {
+  Accept: application/json
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+docs {
+  # MemPalace REST API
+
+  Optional plain REST/JSON API of the MemPalace server.
+  Enable it on the server with `ENABLE_REST_API=true`.
+
+  All requests inherit bearer auth from this collection (the `{{apiKey}}`
+  variable). Pick the **Local** environment (top-right) and adjust
+  `baseUrl`, `apiKey`, and `drawerId` to your setup.
+}

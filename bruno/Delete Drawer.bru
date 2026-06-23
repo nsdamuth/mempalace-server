@@ -1,0 +1,11 @@
+meta {
+  name: Delete Drawer
+  type: http
+  seq: 11
+}
+
+delete {
+  url: {{baseUrl}}/mp/api/v1/drawers/{{drawerId}}
+  body: none
+  auth: inherit
+}

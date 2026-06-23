@@ -1,0 +1,25 @@
+meta {
+  name: Add Drawer
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/mp/api/v1/drawers
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "wing": "project-x",
+    "room": "decisions",
+    "content": "We use JWT auth.",
+    "source_file": "",
+    "added_by": "rest"
+  }
+}

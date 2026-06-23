@@ -134,6 +134,71 @@ client) at this URL with your API key. See the main project for client setup.
 
 ---
 
+## Optional: plain REST/JSON API
+
+Most users only need MCP. But if you want to talk to the palace from a normal
+script, a `curl` command, or a non-MCP app, you can turn on a simple REST API.
+
+It is **off by default**. Enable it with:
+
+```
+ENABLE_REST_API=true
+```
+
+It uses the **same `MCP_API_KEY`** for auth and lives under `/mp/api/v1`.
+It is a thin wrapper over the same logic as MCP — same validation, same storage.
+
+| Method | Path | What it does |
+| --- | --- | --- |
+| `GET` | `/mp/api/v1/health` | Health check |
+| `GET` | `/mp/api/v1/status` | Palace overview (counts) |
+| `GET` | `/mp/api/v1/wings` | List wings |
+| `GET` | `/mp/api/v1/rooms?wing=` | List rooms |
+| `GET` | `/mp/api/v1/taxonomy` | Full wing → room tree |
+| `POST` | `/mp/api/v1/search` | Semantic search |
+| `GET` | `/mp/api/v1/drawers?wing=&room=&limit=&offset=` | List drawers |
+| `POST` | `/mp/api/v1/drawers` | Add a drawer |
+| `GET` | `/mp/api/v1/drawers/{id}` | Get one drawer |
+| `PATCH` | `/mp/api/v1/drawers/{id}` | Update a drawer |
+| `DELETE` | `/mp/api/v1/drawers/{id}` | Delete a drawer |
+
+Examples:
+
+```bash
+KEY="your-secret-key"
+
+# Search
+curl -X POST http://localhost:8000/mp/api/v1/search \
+  -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "what did we decide about auth?", "limit": 5}'
+
+# Add a memory
+curl -X POST http://localhost:8000/mp/api/v1/drawers \
+  -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"wing": "project-x", "room": "decisions", "content": "We use JWT auth."}'
+
+# List memories
+curl http://localhost:8000/mp/api/v1/drawers?wing=project-x \
+  -H "Authorization: Bearer $KEY"
+```
+
+### Try it with Bruno
+
+A ready-to-use [Bruno](https://www.usebruno.com) collection for all REST
+endpoints is in the [`bruno/`](bruno/) folder. Bruno is a free, open-source
+API client (like Postman) that stores requests as plain files in your repo.
+
+1. Install Bruno, then **Open Collection** and pick the `bruno/` folder.
+2. Select the **Local** environment (top-right) and set your values:
+   - `baseUrl` — e.g. `http://localhost:8000`
+   - `apiKey` — your `MCP_API_KEY`
+   - `drawerId` — a real drawer ID (copy one from *Add Drawer* / *List Drawers*)
+3. Send any request. Bearer auth is applied automatically to all of them.
+
+---
+
 ## Configuration
 
 All settings come from environment variables.
@@ -148,6 +213,7 @@ All settings come from environment variables.
 | `EMBED_DIM` | Embedding size — **must match the model** | `768` |
 | `MEMPALACE_TENANT_ID` | Keeps data separate per tenant | `default` |
 | `MEMPALACE_HNSW_EF_SEARCH` | Search quality (higher = better, slower) | `100` |
+| `ENABLE_REST_API` | Turn on the optional REST/JSON API (see below) | `false` |
 | `PORT` | Port the server listens on | `8000` |
 
 ### A note on `EMBED_DIM`

@@ -1,0 +1,11 @@
+meta {
+  name: Get Drawer
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/mp/api/v1/drawers/{{drawerId}}
+  body: none
+  auth: inherit
+}

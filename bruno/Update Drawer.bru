@@ -1,0 +1,23 @@
+meta {
+  name: Update Drawer
+  type: http
+  seq: 10
+}
+
+patch {
+  url: {{baseUrl}}/mp/api/v1/drawers/{{drawerId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "content": "We use JWT auth with 24h expiry.",
+    "wing": "project-x",
+    "room": "decisions"
+  }
+}

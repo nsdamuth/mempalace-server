@@ -73,7 +73,14 @@ func main() {
 
 	// --- HTTP server ---
 	mux := http.NewServeMux()
-	handler.New(col, graph, triples, tunnels, settings, embedClient, cfg).Register(mux)
+	h := handler.New(col, graph, triples, tunnels, settings, embedClient, cfg)
+	h.Register(mux)
+
+	// Optional plain REST/JSON API (off unless ENABLE_REST_API=true).
+	if cfg.EnableRESTAPI {
+		h.RegisterREST(mux)
+		log.Printf("REST API enabled at /mp/api/v1")
+	}
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
