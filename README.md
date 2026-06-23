@@ -132,6 +132,9 @@ Authorization: Bearer <your MCP_API_KEY>
 Point your MCP client (for example the [MemPalace](https://github.com/MemPalace/mempalace)
 client) at this URL with your API key. See the main project for client setup.
 
+👉 For a full guide — client config, the protocol step by step, and every
+available tool — see **[MCP_USAGE.md](MCP_USAGE.md)**.
+
 ---
 
 ## Optional: plain REST/JSON API
