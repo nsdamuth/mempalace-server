@@ -21,8 +21,8 @@ type Config struct {
 	// Embedding (OpenAI-compatible API — works with Ollama, LM Studio, etc.)
 	EmbedAPIURL string // e.g. http://ollama:11434/v1
 	EmbedAPIKey string // optional, e.g. for OpenAI
-	EmbedModel  string // e.g. nomic-embed-text, text-embedding-3-small
-	EmbedDim    int    // must match model output; 384 for all-MiniLM-L6-v2
+	EmbedModel  string // e.g. embeddinggemma (multilingual, 100+ langs), nomic-embed-text, text-embedding-3-small
+	EmbedDim    int    // must equal model output, cannot exceed it; 768 for embeddinggemma (Matryoshka: also 512/256/128)
 
 	// HNSW search quality (higher = better recall, slower)
 	EFSearch int
@@ -40,8 +40,8 @@ func Load() Config {
 		MCPAPIKey:   env("MCP_API_KEY", ""),
 		EmbedAPIURL: env("EMBED_API_URL", "http://localhost:11434/v1"),
 		EmbedAPIKey: env("EMBED_API_KEY", ""),
-		EmbedModel:  env("EMBED_MODEL", "nomic-embed-text"),
-		EmbedDim:    envInt("EMBED_DIM", 384),
+		EmbedModel:  env("EMBED_MODEL", "embeddinggemma"),
+		EmbedDim:    envInt("EMBED_DIM", 768),
 		EFSearch:    envInt("MEMPALACE_HNSW_EF_SEARCH", 100),
 		Port:        env("PORT", "8000"),
 	}

@@ -13,8 +13,8 @@ const DrawersTable = "mempalace_drawers"
 // Provision creates the tenant schema, drawers table, HNSW vector index, and
 // GIN metadata index.  All statements are idempotent (IF NOT EXISTS).
 //
-// dim must match the embedding model's output dimension (e.g. 384 for
-// all-MiniLM-L6-v2, 768 for nomic-embed-text).
+// dim must match the embedding model's output dimension (e.g. 768 for
+// embeddinggemma / nomic-embed-text, 384 for all-MiniLM-L6-v2).
 func Provision(ctx context.Context, pool *pgxpool.Pool, tenantID string, dim int) error {
 	schema := SafeSchemaName(tenantID)
 	table := safeTableName(DrawersTable)

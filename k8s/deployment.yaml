@@ -65,10 +65,14 @@ spec:
 
             # -- Embedding API --
             # Compatible with Ollama, LM Studio, OpenAI, LocalAI, etc.
+            # embeddinggemma: multilingual (100+ languages), native 768 dims.
+            # EMBED_DIM must equal the model's output and cannot exceed it.
+            # embeddinggemma supports Matryoshka truncation DOWN to 512/256/128
+            # (smaller = faster & less storage, slightly lower quality).
             - name: EMBED_API_URL
               value: "http://ollama.mempalace.svc.cluster.local:11434/v1"
             - name: EMBED_MODEL
-              value: "nomic-embed-text"
+              value: "embeddinggemma"
             - name: EMBED_DIM
               value: "768"
             # - name: EMBED_API_KEY
