@@ -135,6 +135,16 @@ client) at this URL with your API key. See the main project for client setup.
 👉 For a full guide — client config, the protocol step by step, and every
 available tool — see **[MCP_USAGE.md](MCP_USAGE.md)**.
 
+### Store and share documentation
+
+Want to load whole documents into the palace and let customers search them?
+Two ready-made Claude Code skills and a step-by-step guide live in
+[`skills/`](skills/):
+
+- [`mempalace-ingest-docs`](skills/mempalace-ingest-docs/SKILL.md) — file a document into MemPalace
+- [`mempalace-read-docs`](skills/mempalace-read-docs/SKILL.md) — search and export it
+- [`skills/Beispiel.md`](skills/Beispiel.md) — full walkthrough, including a read-only key for customers
+
 ---
 
 ## Access control: read vs write keys
