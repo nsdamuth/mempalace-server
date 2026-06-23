@@ -321,6 +321,43 @@ The server creates all the tables it needs on first start.
 
 ---
 
+## Test environment (PostgreSQL + pgvector + AGE)
+
+To run tests or try the entity-graph features, spin up an **isolated** database
+with both extensions. It uses port **5433**, ephemeral `tmpfs` storage (clean on
+every restart), and runs no app container — so it never touches your dev stack.
+
+```bash
+# Start (first run builds the AGE image; later runs are cached)
+docker compose -f docker-compose.test.yml up -d --build
+
+# Connection string
+postgres://mempalace:mempalace_test@localhost:5433/mempalace_test
+
+# Stop and wipe
+docker compose -f docker-compose.test.yml down
+```
+
+Point the server at it and the entity graph (AGE) is provisioned automatically:
+
+```bash
+cd server
+MEMPALACE_DB_URL="postgres://mempalace:mempalace_test@localhost:5433/mempalace_test" \
+MCP_API_KEY="test-key" PORT="8099" \
+EMBED_API_URL="http://localhost:11434/v1" \
+go run ./cmd/mempalace
+# logs: "graph: kg_mp_default ready" → AGE is working
+```
+
+Verify the extensions directly:
+
+```bash
+docker exec mempalace-test-testdb-1 psql -U mempalace -d mempalace_test \
+  -c "SELECT extname, extversion FROM pg_extension WHERE extname IN ('age','vector');"
+```
+
+---
+
 ## Deploy to Kubernetes
 
 Ready-to-use manifests are in the [`k8s/`](k8s/) folder (namespace, PostgreSQL

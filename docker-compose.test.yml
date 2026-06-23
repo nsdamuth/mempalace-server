@@ -1,0 +1,36 @@
+name: mempalace-test
+
+# ── Test environment ─────────────────────────────────────────────────────────
+# An isolated PostgreSQL 16 with pgvector + Apache AGE for running tests.
+#
+#   docker compose -f docker-compose.test.yml up -d --build   # start
+#   docker compose -f docker-compose.test.yml down             # stop & clean
+#
+# Differences vs the dev stack (docker-compose.yml):
+#   • database only — no app container
+#   • port 5433 on the host (so it never clashes with a local 5432)
+#   • data lives in tmpfs — every restart is a clean slate, ideal for tests
+#
+# Connection string for the Go server / tests:
+#   postgres://mempalace:mempalace_test@localhost:5433/mempalace_test
+
+services:
+  testdb:
+    build: ./k8s/postgres
+    # AGE must be preloaded; pgvector does not need it.
+    command: ["postgres", "-c", "shared_preload_libraries=age"]
+    environment:
+      POSTGRES_DB:       mempalace_test
+      POSTGRES_USER:     mempalace
+      POSTGRES_PASSWORD: mempalace_test
+    ports:
+      - "5433:5432"
+    # Ephemeral storage — no named volume, wiped on every `down`.
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mempalace -d mempalace_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 15s
