@@ -138,13 +138,45 @@ available tool — see **[MCP_USAGE.md](MCP_USAGE.md)**.
 ### Store and share documentation
 
 Want to load whole documents into the palace and let customers search them?
-Two ready-made Claude Code skills and a step-by-step guide live in
+Three ready-made Claude Code skills and a step-by-step guide live in
 [`skills/`](skills/):
 
 - [`mempalace-ingest-docs`](skills/mempalace-ingest-docs/SKILL.md) — file a document into MemPalace
 - [`mempalace-read-docs`](skills/mempalace-read-docs/SKILL.md) — search and export it
 - [`mempalace-zettelkasten`](skills/mempalace-zettelkasten/SKILL.md) — capture ideas as atomic, linked notes that resurface fast
 - [`skills/Beispiel.md`](skills/Beispiel.md) — full walkthrough, including a read-only key for customers
+
+#### Installing the skills
+
+The skills work with [Claude Code](https://claude.com/claude-code) (and other
+clients that support the same skill format). Copy the ones you want into your
+skills folder:
+
+```bash
+# Per user (available in every project)
+mkdir -p ~/.claude/skills
+cp -r skills/mempalace-ingest-docs   ~/.claude/skills/
+cp -r skills/mempalace-read-docs     ~/.claude/skills/
+cp -r skills/mempalace-zettelkasten  ~/.claude/skills/
+```
+
+Or install them **per project** instead, so they ship with one repo:
+
+```bash
+mkdir -p .claude/skills
+cp -r /path/to/mempalace-server/skills/mempalace-ingest-docs   .claude/skills/
+cp -r /path/to/mempalace-server/skills/mempalace-read-docs     .claude/skills/
+cp -r /path/to/mempalace-server/skills/mempalace-zettelkasten  .claude/skills/
+```
+
+Then **restart Claude Code** (or run `/doctor` to reload). Each skill is a folder
+with a `SKILL.md`; nothing else to build. The skills become available
+automatically — just describe what you want (e.g. *"ingest docs/api.md into
+MemPalace"*), or invoke one directly with `/mempalace-ingest-docs`.
+
+> The skills call the MemPalace server, so connect it first (see
+> [MCP_USAGE.md](MCP_USAGE.md)) or enable the REST API. See
+> [`skills/Beispiel.md`](skills/Beispiel.md) for the end-to-end walkthrough.
 
 ---
 
