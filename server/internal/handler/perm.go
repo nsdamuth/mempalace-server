@@ -21,8 +21,9 @@ var writeTools = map[string]bool{
 	"mempalace_kg_add_entity":    true,
 	"mempalace_kg_add_relation":  true,
 	"mempalace_kg_delete_entity": true,
-	// Settings (can mutate hook behavior)
-	"mempalace_hook_settings": true,
+	// Settings (mutates hook behavior). The combined alias can mutate too.
+	"mempalace_set_hook_settings": true,
+	"mempalace_hook_settings":     true,
 }
 
 // isWriteTool reports whether calling the named tool requires write access.

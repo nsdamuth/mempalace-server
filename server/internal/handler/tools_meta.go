@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"time"
 )
@@ -32,16 +33,30 @@ func (s *Server) registerMetaTools() {
 		inputSchema{Type: "object"},
 		s.toolGetAAAKSpec)
 
-	s.add("mempalace_hook_settings",
-		"Get or set hook behavior. silent_save: True = save directly (no MCP clutter), False = legacy blocking. desktop_toast: True = show desktop notification. Call with no args to view.",
-		inputSchema{
-			Type: "object",
-			Properties: map[string]schemaProp{
-				"silent_save":   {Type: "boolean", Description: "True = silent direct save, False = blocking MCP calls"},
-				"desktop_toast": {Type: "boolean", Description: "True = show desktop toast via notify-send"},
-			},
+	// Split read/write tools so a read-only key can view settings.
+	s.add("mempalace_get_hook_settings",
+		"View current hook behavior (silent_save, desktop_toast). Read-only.",
+		inputSchema{Type: "object"},
+		s.toolGetHookSettings)
+
+	hookSetSchema := inputSchema{
+		Type: "object",
+		Properties: map[string]schemaProp{
+			"silent_save":   {Type: "boolean", Description: "True = silent direct save, False = blocking MCP calls"},
+			"desktop_toast": {Type: "boolean", Description: "True = show desktop toast via notify-send"},
 		},
-		s.toolHookSettings)
+	}
+	s.add("mempalace_set_hook_settings",
+		"Set hook behavior. silent_save: True = save directly (no MCP clutter), False = legacy blocking. desktop_toast: True = show desktop notification.",
+		hookSetSchema,
+		s.toolSetHookSettings)
+
+	// Backward-compatible alias for the upstream combined get-or-set tool.
+	// Classified as write (it can mutate); use the split tools for read-only access.
+	s.add("mempalace_hook_settings",
+		"Get or set hook behavior. silent_save: True = save directly (no MCP clutter), False = legacy blocking. desktop_toast: True = show desktop notification. Call with no args to view. (Alias — prefer get/set_hook_settings.)",
+		hookSetSchema,
+		s.toolSetHookSettings)
 
 	s.add("mempalace_memories_filed_away",
 		"Check recent palace filing activity. Returns how many drawers were filed today and the latest timestamp.",
@@ -53,7 +68,18 @@ func (s *Server) toolGetAAAKSpec(_ map[string]any) (any, error) {
 	return map[string]any{"aaak_spec": aaakSpec}, nil
 }
 
-func (s *Server) toolHookSettings(args map[string]any) (any, error) {
+// toolGetHookSettings returns the current hook settings (read-only).
+func (s *Server) toolGetHookSettings(_ map[string]any) (any, error) {
+	ctx := reqCtx()
+	settings, err := s.readHookSettings(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"success": true, "settings": settings}, nil
+}
+
+// toolSetHookSettings updates hook settings and returns the new values (write).
+func (s *Server) toolSetHookSettings(args map[string]any) (any, error) {
 	ctx := reqCtx()
 
 	var changed []string
@@ -70,6 +96,19 @@ func (s *Server) toolHookSettings(args map[string]any) (any, error) {
 		changed = append(changed, fmt.Sprintf("desktop_toast → %v", *v))
 	}
 
+	settings, err := s.readHookSettings(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := map[string]any{"success": true, "settings": settings}
+	if len(changed) > 0 {
+		result["updated"] = changed
+	}
+	return result, nil
+}
+
+// readHookSettings loads the current hook settings with their defaults.
+func (s *Server) readHookSettings(ctx context.Context) (map[string]any, error) {
 	silentSave, err := s.settings.GetBool(ctx, "silent_save", true)
 	if err != nil {
 		return nil, err
@@ -78,18 +117,10 @@ func (s *Server) toolHookSettings(args map[string]any) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	result := map[string]any{
-		"success": true,
-		"settings": map[string]any{
-			"silent_save":   silentSave,
-			"desktop_toast": desktopToast,
-		},
-	}
-	if len(changed) > 0 {
-		result["updated"] = changed
-	}
-	return result, nil
+	return map[string]any{
+		"silent_save":   silentSave,
+		"desktop_toast": desktopToast,
+	}, nil
 }
 
 func (s *Server) toolMemoriesFiledAway(_ map[string]any) (any, error) {

@@ -225,7 +225,9 @@ require a full-access key; the rest are readable with a read-only key too.
 | Tool | What it does |
 | --- | --- |
 | `mempalace_get_aaak_spec` | The AAAK compressed-memory format spec |
-| `mempalace_hook_settings` ✏️ | Get/set hook behavior (silent save, desktop toast) |
+| `mempalace_get_hook_settings` | View hook behavior (silent save, desktop toast) |
+| `mempalace_set_hook_settings` ✏️ | Change hook behavior |
+| `mempalace_hook_settings` ✏️ | Combined get/set alias (upstream-compatible; prefer the split tools) |
 | `mempalace_reconnect` | Reconnect to the database (no-op; auto-reconnects) |
 
 If Apache AGE is not installed, the entity-graph tools return a clear error and

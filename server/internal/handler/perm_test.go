@@ -18,6 +18,8 @@ func TestAllowsTool(t *testing.T) {
 		{auth.PermRead, "mempalace_add_drawer", false},
 		{auth.PermRead, "mempalace_delete_drawer", false},
 		{auth.PermRead, "mempalace_kg_add", false},
+		{auth.PermRead, "mempalace_get_hook_settings", true},
+		{auth.PermRead, "mempalace_set_hook_settings", false},
 		{auth.PermRead, "mempalace_hook_settings", false},
 
 		// Full key: everything allowed.
