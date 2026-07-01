@@ -1,0 +1,18 @@
+# Local overrides for the PostgreSQL (pgvector + AGE) StatefulSet on minikube.
+# Applied as a strategic-merge patch by minikube-setup.sh:
+#   kubectl -n mempalace patch statefulset mempalace-db --patch-file statefulset-patch.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mempalace-db
+spec:
+  template:
+    spec:
+      containers:
+        - name: postgres
+          # Use the image baked into minikube's daemon, never pull.
+          imagePullPolicy: IfNotPresent
+          # Apache AGE must be preloaded or the entity graph fails to load.
+          # (docker-compose sets the same flag; the prod manifest assumes the
+          # image's own default config already does it.)
+          command: ["postgres", "-c", "shared_preload_libraries=age"]

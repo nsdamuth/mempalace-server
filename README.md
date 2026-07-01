@@ -370,6 +370,17 @@ kubectl apply -f k8s/
 Edit `k8s/secret.yaml` and `k8s/deployment.yaml` for your own database, API key,
 and embedding API before applying.
 
+### Try it locally on minikube
+
+Want to run the full stack on a local Kubernetes cluster first? A one-shot
+script builds the images, creates the secret, and applies everything:
+
+```bash
+./k8s/minikube-setup.sh
+```
+
+See **[k8s/MINIKUBE.md](k8s/MINIKUBE.md)** for the full guide.
+
 ---
 
 ## License
