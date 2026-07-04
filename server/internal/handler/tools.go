@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"mempalace/server/internal/graphextract"
 )
 
 // registerTools wires every MCP tool name to its definition + handler.
@@ -433,6 +435,7 @@ func (s *Server) toolAddDrawer(args map[string]any) (any, error) {
 				return nil, err
 			}
 			stored++
+			s.populateGraph(ctx, graphextract.DrawerRef{Wing: wing, Room: room, DrawerID: ids[i], Content: bullet})
 		}
 		return map[string]any{
 			"success":        true,
@@ -483,6 +486,7 @@ func (s *Server) toolAddDrawer(args map[string]any) (any, error) {
 	if err := s.col.Add(ctx, []string{drawerID}, []string{content}, []map[string]any{meta}, [][]float32{vec}); err != nil {
 		return nil, err
 	}
+	s.populateGraph(ctx, graphextract.DrawerRef{Wing: wing, Room: room, DrawerID: drawerID, Content: content})
 
 	return map[string]any{
 		"success":   true,

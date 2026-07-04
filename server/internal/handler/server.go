@@ -12,6 +12,7 @@ import (
 	"mempalace/server/internal/auth"
 	"mempalace/server/internal/config"
 	"mempalace/server/internal/embed"
+	"mempalace/server/internal/graphextract"
 	"mempalace/server/internal/storage"
 )
 
@@ -33,8 +34,11 @@ type Server struct {
 	settings *storage.SettingsStore
 	embed    *embed.Client
 	cfg      config.Config
-	tools    map[string]toolDef
-	router   map[string]func(args map[string]any) (any, error)
+	// extractor is non-nil only when knowledge-graph auto-population is enabled
+	// and viable (config on, AGE available, chosen strategy configured).
+	extractor graphextract.Extractor
+	tools     map[string]toolDef
+	router    map[string]func(args map[string]any) (any, error)
 }
 
 // New creates a Server and wires up all tool handlers.
@@ -48,6 +52,7 @@ func New(col *storage.Collection, graph *storage.Graph, triples *storage.TripleS
 		col: col, graph: graph, triples: triples, tunnels: tunnels,
 		settings: settings, embed: embedClient, cfg: cfg,
 	}
+	s.extractor = buildExtractor(cfg, graph)
 	s.registerTools()
 	s.registerKGTools()
 	s.registerTripleTools()

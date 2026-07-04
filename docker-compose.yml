@@ -60,6 +60,17 @@ services:
       MEMPALACE_HNSW_EF_SEARCH: "100"
       MEMPALACE_PG_POOL_MIN:    "2"
       MEMPALACE_PG_POOL_MAX:    "10"
+      # Knowledge-graph auto-population (opt-in, off by default).
+      # When "true", add_drawer also writes to the AGE entity graph.
+      # MEMPALACE_GRAPH_AUTO_POPULATE: "true"
+      # Strategy: "structural" (deterministic, no LLM — links
+      # drawer→room→wing) or "llm" (extracts entities/relations from content).
+      # MEMPALACE_GRAPH_EXTRACTOR: "structural"
+      # LLM extraction — only used when MEMPALACE_GRAPH_EXTRACTOR=llm.
+      # Any OpenAI-compatible chat endpoint (Ollama, LM Studio, OpenAI, …).
+      # LLM_API_URL: "http://host.docker.internal:11434/v1"
+      # LLM_API_KEY: ""
+      # LLM_MODEL:   "llama3.1"
     depends_on:
       db:
         condition: service_healthy

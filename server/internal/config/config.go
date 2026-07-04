@@ -31,6 +31,18 @@ type Config struct {
 	// Optional plain REST/JSON API (off by default; MCP is always on)
 	EnableRESTAPI bool
 
+	// Knowledge-graph auto-population (opt-in). When enabled, add_drawer also
+	// writes to the AGE graph using the selected extractor strategy. Default
+	// off — add_drawer stays storage-only, preserving existing behavior.
+	GraphAutoPopulate bool   // MEMPALACE_GRAPH_AUTO_POPULATE
+	GraphExtractor    string // "structural" (deterministic, no LLM) or "llm"
+
+	// LLM extraction — only used when GraphExtractor == "llm".
+	// OpenAI-compatible chat endpoint (Ollama, LM Studio, OpenAI, …).
+	LLMAPIURL string // LLM_API_URL, e.g. http://host.docker.internal:11434/v1
+	LLMAPIKey string // LLM_API_KEY, optional (empty for local servers)
+	LLMModel  string // LLM_MODEL, e.g. llama3.1, qwen2.5
+
 	// HTTP
 	Port string
 }
@@ -49,6 +61,11 @@ func Load() Config {
 		EmbedDim:          envInt("EMBED_DIM", 768),
 		EFSearch:          envInt("MEMPALACE_HNSW_EF_SEARCH", 100),
 		EnableRESTAPI:     envBool("ENABLE_REST_API", false),
+		GraphAutoPopulate: envBool("MEMPALACE_GRAPH_AUTO_POPULATE", false),
+		GraphExtractor:    env("MEMPALACE_GRAPH_EXTRACTOR", "structural"),
+		LLMAPIURL:         env("LLM_API_URL", ""),
+		LLMAPIKey:         env("LLM_API_KEY", ""),
+		LLMModel:          env("LLM_MODEL", ""),
 		Port:              env("PORT", "8000"),
 	}
 }
