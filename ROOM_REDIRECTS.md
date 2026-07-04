@@ -259,8 +259,10 @@ legitimately distinct):
    embedding endpoint is unreachable the job falls back to exact-only.
 
 The canonical target of each cluster is the room with the most drawers. Proposals
-are written to the `room_merge_candidates` table, keyed by their endpoints so
-re-runs are idempotent and a reviewer's decision (applied/dismissed) sticks.
+are written to the `room_merge_candidates` table, keyed by a **symmetric** hash of
+the room pair — so at most one row ever exists per pair (`A→B` and `B→A` collapse,
+even if the canonical direction flips between runs). Re-runs are idempotent and a
+reviewer's decision (applied/dismissed) sticks.
 
 ### Its own container
 

@@ -4,8 +4,10 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -45,11 +47,18 @@ type MergeCandidate struct {
 	CreatedAt   string  `json:"created_at"`
 }
 
-// candidateID is a stable hash of the merge endpoints, so re-running the dream
-// upserts the same row instead of duplicating it — and a reviewer's decision
-// (applied/dismissed) is preserved across runs.
+// candidateID is a stable, SYMMETRIC hash of the two endpoints: A→B and B→A map
+// to the same id. This guarantees at most one candidate row per unordered room
+// pair — re-running the dream (even if the canonical direction flips) upserts
+// the same row instead of creating a reverse-direction duplicate. The actual
+// direction lives in the from_*/to_* columns; a reviewer's decision is preserved.
 func candidateID(fromWing, fromRoom, toWing, toRoom string) string {
-	h := sha256.Sum256([]byte(fromWing + "/" + fromRoom + "→" + toWing + "/" + toRoom))
+	a := fromWing + "/" + fromRoom
+	b := toWing + "/" + toRoom
+	if a > b {
+		a, b = b, a
+	}
+	h := sha256.Sum256([]byte(a + "↔" + b))
 	return hex.EncodeToString(h[:])[:16]
 }
 
@@ -81,9 +90,10 @@ func ProvisionMergeCandidates(ctx context.Context, pool *pgxpool.Pool, tenantID 
 	return nil
 }
 
-// Upsert writes a candidate. On conflict it refreshes the run_id/score/tier but
-// PRESERVES an existing status — a dismissed pair stays dismissed even if the
-// next dream run proposes it again.
+// Upsert writes a candidate. On conflict (same unordered room pair) it refreshes
+// the latest proposal — including its direction — but PRESERVES an existing
+// status, so a dismissed pair stays dismissed even if the next dream run
+// proposes it again (in either direction).
 func (s *MergeCandidateStore) Upsert(ctx context.Context, c MergeCandidate) error {
 	id := candidateID(c.FromWing, c.FromRoom, c.ToWing, c.ToRoom)
 	sql := fmt.Sprintf(`
@@ -92,6 +102,10 @@ func (s *MergeCandidateStore) Upsert(ctx context.Context, c MergeCandidate) erro
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending', now())
 		ON CONFLICT (id) DO UPDATE SET
 			run_id       = EXCLUDED.run_id,
+			from_wing    = EXCLUDED.from_wing,
+			from_room    = EXCLUDED.from_room,
+			to_wing      = EXCLUDED.to_wing,
+			to_room      = EXCLUDED.to_room,
 			tier         = EXCLUDED.tier,
 			score        = EXCLUDED.score,
 			from_drawers = EXCLUDED.from_drawers`, s.schema)
@@ -160,34 +174,21 @@ func (s *MergeCandidateStore) Get(ctx context.Context, id string) (*MergeCandida
 	return &c, nil
 }
 
-// Decision returns the review decision recorded for a room pair, checking BOTH
-// directions (from→to and to→from). "dismissed" wins over "applied" wins over
-// "" (no candidate). Lets the write path honor a human's "keep separate" choice.
+// Decision returns the review decision recorded for a room pair, or "" if none.
+// The candidate id is symmetric, so a single lookup covers both directions.
+// Lets the write path honor a human's "keep separate" choice.
 func (s *MergeCandidateStore) Decision(ctx context.Context, w1, r1, w2, r2 string) (string, error) {
-	id1 := candidateID(w1, r1, w2, r2)
-	id2 := candidateID(w2, r2, w1, r1)
-	rows, err := s.pool.Query(ctx,
-		fmt.Sprintf(`SELECT status FROM %s.room_merge_candidates WHERE id = $1 OR id = $2`, s.schema),
-		id1, id2)
+	var st string
+	err := s.pool.QueryRow(ctx,
+		fmt.Sprintf(`SELECT status FROM %s.room_merge_candidates WHERE id = $1`, s.schema),
+		candidateID(w1, r1, w2, r2)).Scan(&st)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", nil
+	}
 	if err != nil {
 		return "", fmt.Errorf("candidate decision: %w", err)
 	}
-	defer rows.Close()
-
-	best := ""
-	for rows.Next() {
-		var st string
-		if err := rows.Scan(&st); err != nil {
-			return "", err
-		}
-		if st == CandidateDismissed {
-			return CandidateDismissed, nil
-		}
-		if st == CandidateApplied {
-			best = CandidateApplied
-		}
-	}
-	return best, rows.Err()
+	return st, nil
 }
 
 // MarkApplied flags the candidate matching a from→to merge as applied, if one
