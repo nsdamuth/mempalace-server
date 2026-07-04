@@ -74,10 +74,16 @@ services:
       # drawer→room→wing) or "llm" (extracts entities/relations from content).
       # MEMPALACE_GRAPH_EXTRACTOR: "structural"
       # LLM extraction — only used when MEMPALACE_GRAPH_EXTRACTOR=llm.
-      # Any OpenAI-compatible chat endpoint (Ollama, LM Studio, OpenAI, …).
-      # LLM_API_URL: "http://host.docker.internal:11434/v1"
+      # LLM_PROVIDER selects the endpoint dialect:
+      #   "openai" (default): /v1/chat/completions (Ollama compat, LM Studio,
+      #     OpenAI, …). LLM_API_URL must include /v1. NOTE: use a NON-thinking
+      #     model — reasoning output cannot be suppressed and blows the timeout.
+      #   "ollama": native /api/chat with think=false, so thinking models
+      #     (qwen3, …) work. LLM_API_URL must be the root WITHOUT /v1.
+      # LLM_PROVIDER: "ollama"
+      # LLM_API_URL: "http://host.docker.internal:11434"      # ollama: no /v1
       # LLM_API_KEY: ""
-      # LLM_MODEL:   "llama3.1"
+      # LLM_MODEL:   "qwen3"
       # Room redirects (opt-in, off by default). When "true", exposes the
       # redirect tools and makes add_drawer/search/list_drawers transparently
       # follow a merged/renamed room to its canonical target. See ROOM_REDIRECTS.md.
