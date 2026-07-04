@@ -29,3 +29,9 @@ updates:
     # Check for updates once a week
     schedule:
       interval: "weekly"
+  - package-ecosystem: "gomod"
+    # Look for a `Dockerfile` in the `root` directory
+    directory: "/core"
+    # Check for updates once a week
+    schedule:
+      interval: "weekly"
