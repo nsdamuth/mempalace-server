@@ -295,7 +295,8 @@ All settings come from environment variables.
 | `MEMPALACE_GRAPH_AUTO_POPULATE` | Auto-populate the entity graph on `add_drawer` (see below) | `false` |
 | `MEMPALACE_GRAPH_EXTRACTOR` | Extraction strategy: `structural` or `llm` | `structural` |
 | `MEMPALACE_ROOM_REDIRECTS` | Enable room merge/rename redirects (see below) | `false` |
-| `LLM_API_URL` | OpenAI-compatible chat API (only for `llm` extractor) | empty |
+| `LLM_PROVIDER` | Chat dialect for the `llm` extractor: `openai` or `ollama` (see below) | `openai` |
+| `LLM_API_URL` | Chat API base (only for `llm` extractor) — `openai`: incl. `/v1`; `ollama`: root without `/v1` | empty |
 | `LLM_API_KEY` | API key for the chat API (if needed) | empty |
 | `LLM_MODEL` | Chat model name (only for `llm` extractor) | empty |
 | `PORT` | Port the server listens on | `8000` |
@@ -317,9 +318,18 @@ If you *do* want the graph filled automatically, set
   `entity_type` `Drawer` / `Room` / `Wing`, so they stay distinguishable from
   entities you add yourself. No network calls, no new dependencies.
 - **`llm`** — extracts real entities and relations from the drawer content via
-  an OpenAI-compatible chat model. Set `LLM_API_URL`, `LLM_MODEL` (and
-  `LLM_API_KEY` if required). Closer to what MemPalace-family users may expect,
-  at the cost of an LLM call in the `add_drawer` write path.
+  a chat model. Set `LLM_API_URL`, `LLM_MODEL` (and `LLM_API_KEY` if required).
+  Closer to what MemPalace-family users may expect, at the cost of an LLM call in
+  the `add_drawer` write path. Pick the endpoint dialect with `LLM_PROVIDER`:
+    - **`openai`** (default) — OpenAI-compatible `/v1/chat/completions` (OpenAI,
+      LM Studio, LocalAI, Ollama's compat layer). Point `LLM_API_URL` at the base
+      **including** `/v1` (e.g. `http://host:11434/v1`). ⚠️ **Use a non-thinking
+      model here** — this endpoint cannot suppress a reasoning model's `<think>`
+      output, which streams for tens of seconds and exceeds the extraction
+      timeout, leaving the graph empty.
+    - **`ollama`** — Ollama-native `/api/chat` with `think=false`, which disables
+      reasoning so **thinking models (qwen3, …) work**. Point `LLM_API_URL` at the
+      Ollama root **without** `/v1` (e.g. `http://host:11434`).
 
 Both require Apache AGE to be available; if it isn't, auto-population is
 silently disabled (a log line explains why). Population is **best-effort** — if
