@@ -153,6 +153,33 @@ func (c *Collection) MoveRoom(ctx context.Context, fromWing, fromRoom, toWing, t
 	return tag.RowsAffected(), nil
 }
 
+// RoomCountsInWing returns {room → drawer count} for a single wing. Cheaper than
+// WingRoomCounts (whole palace) — used on the add_drawer write path to detect a
+// pre-existing room with an equivalent name before a duplicate is created.
+func (c *Collection) RoomCountsInWing(ctx context.Context, wing string) (map[string]int, error) {
+	sql := fmt.Sprintf(`
+		SELECT COALESCE(metadata ->> 'room', 'unknown') AS room, count(*)
+		FROM %s
+		WHERE metadata ->> 'wing' = $1
+		GROUP BY room`, c.fqt)
+	rows, err := c.pool.Query(ctx, sql, wing)
+	if err != nil {
+		return nil, fmt.Errorf("room counts in wing: %w", err)
+	}
+	defer rows.Close()
+
+	out := map[string]int{}
+	for rows.Next() {
+		var room string
+		var n int
+		if err := rows.Scan(&room, &n); err != nil {
+			return nil, err
+		}
+		out[room] = n
+	}
+	return out, rows.Err()
+}
+
 // Delete removes drawers by ID.
 func (c *Collection) Delete(ctx context.Context, ids []string) error {
 	if len(ids) == 0 {

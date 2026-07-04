@@ -129,3 +129,13 @@ func TestResolveRoom_NilStore(t *testing.T) {
 		t.Fatalf("nil store should pass through unchanged: %s/%s info=%v err=%v", w, r, info, err)
 	}
 }
+
+// canonicalizeRoom must short-circuit before touching the collection when the
+// feature is off (nil redirect store) — otherwise it would panic on the nil col.
+func TestCanonicalizeRoom_NilStore(t *testing.T) {
+	s := newRegistry() // redirects + col are nil
+	w, r, info, err := s.canonicalizeRoom(reqCtx(), "w", "Auth")
+	if err != nil || info != nil || w != "w" || r != "Auth" {
+		t.Fatalf("nil store should pass through unchanged: %s/%s info=%v err=%v", w, r, info, err)
+	}
+}

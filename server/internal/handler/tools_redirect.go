@@ -117,6 +117,12 @@ func (s *Server) applyRedirect(ctx context.Context, fromWing, fromRoom, toWing, 
 		resp["moved_to"] = map[string]string{"wing": termWing, "room": termRoom}
 	}
 
+	// Remember the decision: clear any matching pending merge proposal so the
+	// dream job won't re-surface a merge that has already been performed.
+	if s.mergeCandidates != nil {
+		_ = s.mergeCandidates.MarkApplied(ctx, fromWing, fromRoom, toWing, toRoom)
+	}
+
 	return resp, nil
 }
 

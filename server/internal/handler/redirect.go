@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 
+	"mempalace/server/internal/consolidate"
 	"mempalace/server/internal/storage"
 )
 
@@ -98,5 +99,64 @@ func (s *Server) resolveRoom(ctx context.Context, wing, room string) (string, st
 		FromWing: wing, FromRoom: room,
 		ToWing: tw, ToRoom: tr,
 		Chain: chain, Reason: reason, Hops: len(chain) - 1,
+	}, nil
+}
+
+// canonicalInfo is attached to add_drawer's response when a would-be duplicate
+// room was folded into an existing one at write time.
+type canonicalInfo struct {
+	FromRoom string `json:"from_room"`
+	ToRoom   string `json:"to_room"`
+	Wing     string `json:"wing"`
+	Reason   string `json:"reason"`
+}
+
+// canonicalizeRoom prevents duplicate rooms from arising: if a room with an
+// equivalent name (same after normalization — casing/separator only) already
+// exists in the wing, the write is folded into that existing room instead of
+// creating a new variant. The decision is remembered as a redirect (so later
+// reads of the old spelling resolve too), and any drawers already under the old
+// spelling are moved. A pair the user explicitly dismissed ("keep separate") is
+// honored and left untouched. No-op when the feature is disabled.
+func (s *Server) canonicalizeRoom(ctx context.Context, wing, room string) (string, string, *canonicalInfo, error) {
+	if s.redirects == nil || wing == "" || room == "" {
+		return wing, room, nil, nil
+	}
+	counts, err := s.col.RoomCountsInWing(ctx, wing)
+	if err != nil {
+		return wing, room, nil, err
+	}
+
+	// Find the best existing room whose name normalizes the same (but differs in
+	// spelling); prefer the one with the most drawers as canonical.
+	norm := consolidate.Normalize(room)
+	canonical, bestCount := "", -1
+	for r, c := range counts {
+		if r == room {
+			continue
+		}
+		if consolidate.Normalize(r) == norm && c > bestCount {
+			canonical, bestCount = r, c
+		}
+	}
+	if canonical == "" {
+		return wing, room, nil, nil // no equivalent — nothing to prevent
+	}
+
+	// Respect a human's "these are different" decision.
+	if s.mergeCandidates != nil {
+		if dec, _ := s.mergeCandidates.Decision(ctx, wing, room, wing, canonical); dec == storage.CandidateDismissed {
+			return wing, room, nil, nil
+		}
+	}
+
+	// Record the fold as a redirect + move any pre-existing drawers.
+	if _, err := s.applyRedirect(ctx, wing, room, wing, canonical,
+		"duplicate room name (normalized match)", true); err != nil {
+		return wing, room, nil, err
+	}
+	return wing, canonical, &canonicalInfo{
+		FromRoom: room, ToRoom: canonical, Wing: wing,
+		Reason: "folded into existing room with an equivalent name",
 	}, nil
 }

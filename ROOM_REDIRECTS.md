@@ -193,6 +193,51 @@ Removing the redirect stops the forwarding; it does **not** move drawers back.
 
 ---
 
+## Preventing duplicates at write time
+
+Redirects cure fragmentation; this stops the easy cases from ever forming. When
+`MEMPALACE_ROOM_REDIRECTS=true`, `add_drawer` checks — after following existing
+redirects — whether a room with an **equivalent name** already exists in the
+wing (equivalent = identical after normalization: lowercase, and `-`/`_`/spaces
+unified). If so, the write is **folded into the existing room** instead of
+creating a new variant:
+
+- `add_drawer(room="auth")` when `Auth` already exists → the drawer is filed
+  under `Auth`, a redirect `auth → Auth` is recorded (so later reads of `auth`
+  resolve too), any stray drawers under `auth` are moved, and the response
+  carries a `canonicalized` block.
+
+```json
+{
+  "success": true, "drawer_id": "…", "wing": "backend", "room": "Auth",
+  "canonicalized": {
+    "from_room": "auth", "to_room": "Auth", "wing": "backend",
+    "reason": "folded into existing room with an equivalent name"
+  }
+}
+```
+
+The fold is only for normalization-equivalent names — genuinely different topics
+are never merged here; those are left to the dream job's review flow. And a pair
+you explicitly **dismissed** (see below) is honored: it is never auto-folded and
+stays a separate room.
+
+---
+
+## Remembering decisions
+
+Every merge decision is persisted in `room_merge_candidates.status`, so it sticks
+across dream runs:
+
+- **Applied** — creating a redirect (via `redirect_room` or
+  `apply_merge_candidate`) marks the matching candidate `applied`, so the dream
+  job never re-proposes an already-performed merge.
+- **Dismissed** — a rejected proposal is marked `dismissed`: it drops out of
+  `pending` lists, is not re-surfaced by later dream runs, is not auto-folded at
+  write time, and the room **stays independent**.
+
+---
+
 ## The "dream" consolidation job
 
 Merging by hand finds the fragments you already know about. The **dream job**

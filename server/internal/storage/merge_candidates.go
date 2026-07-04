@@ -160,6 +160,50 @@ func (s *MergeCandidateStore) Get(ctx context.Context, id string) (*MergeCandida
 	return &c, nil
 }
 
+// Decision returns the review decision recorded for a room pair, checking BOTH
+// directions (from→to and to→from). "dismissed" wins over "applied" wins over
+// "" (no candidate). Lets the write path honor a human's "keep separate" choice.
+func (s *MergeCandidateStore) Decision(ctx context.Context, w1, r1, w2, r2 string) (string, error) {
+	id1 := candidateID(w1, r1, w2, r2)
+	id2 := candidateID(w2, r2, w1, r1)
+	rows, err := s.pool.Query(ctx,
+		fmt.Sprintf(`SELECT status FROM %s.room_merge_candidates WHERE id = $1 OR id = $2`, s.schema),
+		id1, id2)
+	if err != nil {
+		return "", fmt.Errorf("candidate decision: %w", err)
+	}
+	defer rows.Close()
+
+	best := ""
+	for rows.Next() {
+		var st string
+		if err := rows.Scan(&st); err != nil {
+			return "", err
+		}
+		if st == CandidateDismissed {
+			return CandidateDismissed, nil
+		}
+		if st == CandidateApplied {
+			best = CandidateApplied
+		}
+	}
+	return best, rows.Err()
+}
+
+// MarkApplied flags the candidate matching a from→to merge as applied, if one
+// exists (no-op otherwise). Called when a redirect is created so a manually
+// performed merge clears its corresponding pending proposal.
+func (s *MergeCandidateStore) MarkApplied(ctx context.Context, fromWing, fromRoom, toWing, toRoom string) error {
+	id := candidateID(fromWing, fromRoom, toWing, toRoom)
+	_, err := s.pool.Exec(ctx,
+		fmt.Sprintf(`UPDATE %s.room_merge_candidates SET status = 'applied' WHERE id = $1`, s.schema),
+		id)
+	if err != nil {
+		return fmt.Errorf("mark candidate applied: %w", err)
+	}
+	return nil
+}
+
 // SetStatus updates a candidate's review status. Returns whether a row matched.
 func (s *MergeCandidateStore) SetStatus(ctx context.Context, id, status string) (bool, error) {
 	tag, err := s.pool.Exec(ctx,

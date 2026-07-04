@@ -431,6 +431,13 @@ func (s *Server) toolAddDrawer(args map[string]any) (any, error) {
 		return nil, err
 	}
 
+	// Prevent a duplicate room from arising: if an equivalent room name already
+	// exists (differs only by casing/separators), fold this write into it.
+	wing, room, canonicalized, err := s.canonicalizeRoom(ctx, wing, room)
+	if err != nil {
+		return nil, err
+	}
+
 	// Split bullet-point lists into individual drawers for precise retrieval
 	if bullets := splitBullets(content); len(bullets) > 0 {
 		ids := make([]string, 0, len(bullets))
@@ -472,13 +479,13 @@ func (s *Server) toolAddDrawer(args map[string]any) (any, error) {
 			stored++
 			s.populateGraph(ctx, graphextract.DrawerRef{Wing: wing, Room: room, DrawerID: ids[i], Content: bullet})
 		}
-		return withRedirect(map[string]any{
+		return withHints(map[string]any{
 			"success":        true,
 			"bullets_stored": stored,
 			"bullets_total":  len(bullets),
 			"wing":           wing,
 			"room":           room,
-		}, redirected), nil
+		}, redirected, canonicalized), nil
 	}
 
 	// Deterministic ID: sha256(wing/room/content[:500])[:16]
@@ -495,11 +502,11 @@ func (s *Server) toolAddDrawer(args map[string]any) (any, error) {
 		return nil, err
 	}
 	if exists {
-		return withRedirect(map[string]any{
+		return withHints(map[string]any{
 			"success":   true,
 			"reason":    "already_exists",
 			"drawer_id": drawerID,
-		}, redirected), nil
+		}, redirected, canonicalized), nil
 	}
 
 	vec, err := s.embed.EmbedOne(ctx, content)
@@ -523,12 +530,12 @@ func (s *Server) toolAddDrawer(args map[string]any) (any, error) {
 	}
 	s.populateGraph(ctx, graphextract.DrawerRef{Wing: wing, Room: room, DrawerID: drawerID, Content: content})
 
-	return withRedirect(map[string]any{
+	return withHints(map[string]any{
 		"success":   true,
 		"drawer_id": drawerID,
 		"wing":      wing,
 		"room":      room,
-	}, redirected), nil
+	}, redirected, canonicalized), nil
 }
 
 // withRedirect attaches the transparent-follow block to a response when a
@@ -536,6 +543,19 @@ func (s *Server) toolAddDrawer(args map[string]any) (any, error) {
 func withRedirect(resp map[string]any, ri *redirectInfo) map[string]any {
 	if ri != nil {
 		resp["redirected"] = ri
+	}
+	return resp
+}
+
+// withHints attaches both the redirect-follow and duplicate-fold blocks when
+// present. Used by add_drawer, where a write may be both redirected (existing
+// merge) and canonicalized (prevented duplicate).
+func withHints(resp map[string]any, ri *redirectInfo, ci *canonicalInfo) map[string]any {
+	if ri != nil {
+		resp["redirected"] = ri
+	}
+	if ci != nil {
+		resp["canonicalized"] = ci
 	}
 	return resp
 }
