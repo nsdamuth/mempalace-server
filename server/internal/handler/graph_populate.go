@@ -32,8 +32,14 @@ func buildExtractor(cfg config.Config, graph *storage.Graph) graphextract.Extrac
 			log.Printf("graph auto-populate: extractor=llm but LLM_API_URL/LLM_MODEL unset — disabling")
 			return nil
 		}
-		log.Printf("graph auto-populate: enabled (llm extractor, model=%s)", cfg.LLMModel)
-		return graphextract.NewLLM(llm.NewClient(cfg.LLMAPIURL, cfg.LLMAPIKey, cfg.LLMModel))
+		client := llm.NewClient(cfg.LLMAPIURL, cfg.LLMAPIKey, cfg.LLMModel, cfg.LLMProvider)
+		switch client.Provider() {
+		case llm.ProviderOllama:
+			log.Printf("graph auto-populate: enabled (llm extractor, provider=ollama /api/chat think=false, model=%s)", cfg.LLMModel)
+		default:
+			log.Printf("graph auto-populate: enabled (llm extractor, provider=openai /v1, model=%s) — NOTE: use a non-thinking model; a reasoning model's <think> output will exceed the timeout", cfg.LLMModel)
+		}
+		return graphextract.NewLLM(client)
 	default:
 		log.Printf("graph auto-populate: unknown extractor %q — disabling", cfg.GraphExtractor)
 		return nil

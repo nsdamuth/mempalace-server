@@ -47,10 +47,20 @@ type Config struct {
 	GraphExtractor    string `env:"MEMPALACE_GRAPH_EXTRACTOR" envDefault:"structural"` // "structural" (deterministic, no LLM) or "llm"
 
 	// LLM extraction — only used when GraphExtractor == "llm".
-	// OpenAI-compatible chat endpoint (Ollama, LM Studio, OpenAI, …).
-	LLMAPIURL string `env:"LLM_API_URL"` // e.g. http://host.docker.internal:11434/v1
-	LLMAPIKey string `env:"LLM_API_KEY"` // optional (empty for local servers)
-	LLMModel  string `env:"LLM_MODEL"`   // e.g. llama3.1, qwen2.5
+	//
+	// LLMProvider selects how the chat endpoint is called:
+	//   "openai" (default) — OpenAI-compatible /v1/chat/completions. Works with
+	//       OpenAI, LM Studio, LocalAI, and Ollama's compat layer. NOTE: you must
+	//       use a NON-thinking model here — a reasoning model streams a long
+	//       <think> block that this endpoint cannot suppress, blowing the timeout.
+	//       Set LLM_API_URL to the base incl. /v1 (e.g. http://host:11434/v1).
+	//   "ollama" — Ollama-native /api/chat with think=false, which disables
+	//       reasoning, so thinking models (qwen3, …) work. Set LLM_API_URL to the
+	//       Ollama root WITHOUT /v1 (e.g. http://host:11434).
+	LLMProvider string `env:"LLM_PROVIDER" envDefault:"openai"` // "openai" | "ollama"
+	LLMAPIURL   string `env:"LLM_API_URL"`                      // openai: http://host:11434/v1 · ollama: http://host:11434
+	LLMAPIKey   string `env:"LLM_API_KEY"`                      // optional (empty for local servers)
+	LLMModel    string `env:"LLM_MODEL"`                        // e.g. llama3.2 (openai), qwen3 (ollama)
 
 	// HTTP
 	Port string `env:"PORT" envDefault:"8000"`
