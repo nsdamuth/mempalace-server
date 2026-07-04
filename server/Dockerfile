@@ -1,3 +1,12 @@
+# ============================================================================
+# MemPalace Go server image.
+#
+# The server module (mempalace/server) shares storage/embed/config with the
+# dreamjob via the mempalace/core module (replace ../core), so the build context
+# is the REPO ROOT (needs both core/ and server/):
+#   docker build -f server/Dockerfile -t your-registry.example.com/mempalace-go:latest .
+# ============================================================================
+
 # ── Stage 1: build ──────────────────────────────────────────────────────────
 FROM golang:1.26-alpine AS builder
 
@@ -6,12 +15,14 @@ RUN apk add --no-cache ca-certificates git
 
 WORKDIR /src
 
-COPY go.mod go.sum ./
-RUN go mod download
+# core is a local module dependency (replace ../core); copy it first for caching.
+COPY core/ ./core/
+COPY server/go.mod server/go.sum ./server/
+RUN cd server && go mod download
 
-COPY . .
+COPY server/ ./server/
 
-RUN CGO_ENABLED=0 GOOS=linux go build \
+RUN cd server && CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-s -w" \
     -o /mempalace \
     ./cmd/mempalace

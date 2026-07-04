@@ -9,11 +9,11 @@ import (
 	"log"
 	"net/http"
 
+	"mempalace/core/config"
+	"mempalace/core/embed"
+	"mempalace/core/storage"
 	"mempalace/server/internal/auth"
-	"mempalace/server/internal/config"
-	"mempalace/server/internal/embed"
 	"mempalace/server/internal/graphextract"
-	"mempalace/server/internal/storage"
 )
 
 const (
@@ -27,13 +27,15 @@ var supportedProtocolVersions = []string{
 
 // Server handles MCP JSON-RPC requests over HTTP.
 type Server struct {
-	col      *storage.Collection
-	graph    *storage.Graph // nil when AGE is not installed
-	triples  *storage.TripleStore
-	tunnels  *storage.TunnelStore
-	settings *storage.SettingsStore
-	embed    *embed.Client
-	cfg      config.Config
+	col             *storage.Collection
+	graph           *storage.Graph // nil when AGE is not installed
+	triples         *storage.TripleStore
+	tunnels         *storage.TunnelStore
+	redirects       *storage.RedirectStore
+	mergeCandidates *storage.MergeCandidateStore
+	settings        *storage.SettingsStore
+	embed           *embed.Client
+	cfg             config.Config
 	// extractor is non-nil only when knowledge-graph auto-population is enabled
 	// and viable (config on, AGE available, chosen strategy configured).
 	extractor graphextract.Extractor
@@ -46,10 +48,12 @@ type Server struct {
 // that case. The temporal KG (triples), tunnels and settings stores are plain
 // SQL and are always available.
 func New(col *storage.Collection, graph *storage.Graph, triples *storage.TripleStore,
-	tunnels *storage.TunnelStore, settings *storage.SettingsStore,
+	tunnels *storage.TunnelStore, redirects *storage.RedirectStore,
+	mergeCandidates *storage.MergeCandidateStore, settings *storage.SettingsStore,
 	embedClient *embed.Client, cfg config.Config) *Server {
 	s := &Server{
 		col: col, graph: graph, triples: triples, tunnels: tunnels,
+		redirects: redirects, mergeCandidates: mergeCandidates,
 		settings: settings, embed: embedClient, cfg: cfg,
 	}
 	s.extractor = buildExtractor(cfg, graph)
@@ -57,6 +61,10 @@ func New(col *storage.Collection, graph *storage.Graph, triples *storage.TripleS
 	s.registerKGTools()
 	s.registerTripleTools()
 	s.registerGraphTools()
+	if cfg.RoomRedirects {
+		s.registerRedirectTools()
+		s.registerMergeTools()
+	}
 	s.registerMetaTools()
 	return s
 }

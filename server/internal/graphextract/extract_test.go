@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"mempalace/core/storage"
 	"mempalace/server/internal/llm"
-	"mempalace/server/internal/storage"
 )
 
 func TestStructuralExtract(t *testing.T) {

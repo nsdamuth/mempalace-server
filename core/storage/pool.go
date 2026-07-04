@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	pgxvec "github.com/pgvector/pgvector-go/pgx"
 
-	"mempalace/server/internal/config"
+	"mempalace/core/config"
 )
 
 // NewPool creates a pgxpool with pgvector types registered on every connection.

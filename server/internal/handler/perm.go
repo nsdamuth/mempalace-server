@@ -14,6 +14,11 @@ var writeTools = map[string]bool{
 	// Tunnels
 	"mempalace_create_tunnel": true,
 	"mempalace_delete_tunnel": true,
+	// Room redirects + dream merge review (mutate the taxonomy / review state)
+	"mempalace_redirect_room":           true,
+	"mempalace_delete_redirect":         true,
+	"mempalace_apply_merge_candidate":   true,
+	"mempalace_dismiss_merge_candidate": true,
 	// Temporal knowledge graph
 	"mempalace_kg_add":        true,
 	"mempalace_kg_invalidate": true,

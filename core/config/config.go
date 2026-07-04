@@ -28,6 +28,18 @@ type Config struct {
 	// Optional plain REST/JSON API (off by default; MCP is always on)
 	EnableRESTAPI bool `env:"ENABLE_REST_API" envDefault:"false"`
 
+	// Room redirects (opt-in). When enabled, the redirect tools are exposed and
+	// add_drawer / search / list_drawers transparently follow a merged/renamed
+	// room to its canonical target. Default off — no redirect tools are
+	// registered and add_drawer stays storage-only, preserving existing behavior.
+	RoomRedirects bool `env:"MEMPALACE_ROOM_REDIRECTS" envDefault:"false"`
+
+	// Dream consolidation job (cmd/dreamjob). Scans rooms once per run and writes
+	// near-duplicate merge candidates for review — it never merges anything
+	// itself. Consumed by the mempalace_*_merge_candidate MCP tools.
+	DreamSemantic  bool    `env:"MEMPALACE_DREAM_SEMANTIC" envDefault:"true"`  // also cluster by embedding similarity, not just name normalization
+	DreamThreshold float64 `env:"MEMPALACE_DREAM_THRESHOLD" envDefault:"0.88"` // cosine cutoff for the semantic tier (0..1)
+
 	// Knowledge-graph auto-population (opt-in). When enabled, add_drawer also
 	// writes to the AGE graph using the selected extractor strategy. Default
 	// off — add_drawer stays storage-only, preserving existing behavior.

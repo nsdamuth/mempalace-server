@@ -1,12 +1,12 @@
-module mempalace/server
+module mempalace/core
 
 go 1.26.4
 
 require (
-	github.com/caarlos0/env/v11 v11.4.1 // indirect
-	github.com/jackc/pgx/v5 v5.10.0 // indirect
-	github.com/pgvector/pgvector-go v0.4.0 // indirect
-	github.com/pgvector/pgvector-go/pgx v0.4.0 // indirect
+	github.com/caarlos0/env/v11 v11.4.1
+	github.com/jackc/pgx/v5 v5.10.0
+	github.com/pgvector/pgvector-go v0.4.0
+	github.com/pgvector/pgvector-go/pgx v0.4.0
 )
 
 require (
@@ -16,7 +16,4 @@ require (
 	github.com/x448/float16 v0.8.4 // indirect
 	golang.org/x/sync v0.21.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
-	mempalace/core v0.0.0
 )
-
-replace mempalace/core => ../core

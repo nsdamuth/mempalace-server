@@ -29,6 +29,7 @@ PATCH_DIR="$SCRIPT_DIR/minikube"
 
 NAMESPACE="mempalace"
 GO_IMAGE="mempalace-go:local"
+DREAM_IMAGE="mempalace-dreamjob:local"
 DB_IMAGE="mempalace-postgres:local"
 
 # --- Pretty logging --------------------------------------------------------
@@ -66,8 +67,14 @@ minikube image build -t "$DB_IMAGE" "$SCRIPT_DIR/postgres"
 ok "Built $DB_IMAGE"
 
 info "Building MemPalace Go server image…"
-minikube image build -t "$GO_IMAGE" "$REPO_ROOT/server"
+# Build context is the repo root: the server + dreamjob modules share code via
+# the local mempalace/core module (replace ../core).
+minikube image build -t "$GO_IMAGE" -f "$REPO_ROOT/server/Dockerfile" "$REPO_ROOT"
 ok "Built $GO_IMAGE"
+
+info "Building dream-job image…"
+minikube image build -t "$DREAM_IMAGE" -f "$REPO_ROOT/dreamjob/Dockerfile" "$REPO_ROOT"
+ok "Built $DREAM_IMAGE"
 
 # --- 3. Namespace ----------------------------------------------------------
 info "Ensuring namespace '$NAMESPACE' exists…"

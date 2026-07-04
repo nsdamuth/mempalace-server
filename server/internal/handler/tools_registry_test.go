@@ -3,7 +3,7 @@ package handler
 import (
 	"testing"
 
-	"mempalace/server/internal/config"
+	"mempalace/core/config"
 )
 
 // upstreamTools is the full MCP tool surface of MemPalace (29 tools). The Go
@@ -30,7 +30,7 @@ var upstreamTools = []string{
 // newRegistry builds a Server for registry inspection only. Tool registration
 // does not touch the storage/embed dependencies, so nil is safe here.
 func newRegistry() *Server {
-	return New(nil, nil, nil, nil, nil, nil, config.Config{})
+	return New(nil, nil, nil, nil, nil, nil, nil, nil, config.Config{})
 }
 
 func TestUpstreamToolsRegistered(t *testing.T) {
