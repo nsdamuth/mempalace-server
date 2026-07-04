@@ -4,10 +4,10 @@ import (
 	"context"
 	"log"
 
-	"mempalace/server/internal/config"
+	"mempalace/core/config"
+	"mempalace/core/storage"
 	"mempalace/server/internal/graphextract"
 	"mempalace/server/internal/llm"
-	"mempalace/server/internal/storage"
 )
 
 // buildExtractor selects the knowledge-graph extractor from config. It returns

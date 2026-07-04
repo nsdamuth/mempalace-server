@@ -15,7 +15,7 @@ package graphextract
 import (
 	"context"
 
-	"mempalace/server/internal/storage"
+	"mempalace/core/storage"
 )
 
 // DrawerRef is the input an extractor sees for one filed drawer.

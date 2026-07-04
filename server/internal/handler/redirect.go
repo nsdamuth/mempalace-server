@@ -3,8 +3,8 @@ package handler
 import (
 	"context"
 
-	"mempalace/server/internal/consolidate"
-	"mempalace/server/internal/storage"
+	"mempalace/core/consolidate"
+	"mempalace/core/storage"
 )
 
 // maxRedirectHops caps chain resolution so a corrupted cycle can never spin.

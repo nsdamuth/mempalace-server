@@ -31,7 +31,9 @@ services:
   # MemPalace Go server
   # --------------------------------------------------------------------------
   app:
-    build: ./server
+    build:
+      context: .
+      dockerfile: server/Dockerfile
     ports:
       - "8000:8000"
     # Make `host.docker.internal` resolve on native Linux Docker too (it is
@@ -94,8 +96,8 @@ services:
   # --------------------------------------------------------------------------
   dreamjob:
     build:
-      context: ./server
-      dockerfile: Dockerfile.dreamjob
+      context: .
+      dockerfile: dreamjob/Dockerfile
     profiles: ["dream"]           # only runs when explicitly invoked
     extra_hosts:
       - "host.docker.internal:host-gateway"

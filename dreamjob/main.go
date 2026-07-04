@@ -11,10 +11,10 @@ import (
 	"log"
 	"time"
 
-	"mempalace/server/internal/config"
-	"mempalace/server/internal/consolidate"
-	"mempalace/server/internal/embed"
-	"mempalace/server/internal/storage"
+	"mempalace/core/config"
+	"mempalace/core/consolidate"
+	"mempalace/core/embed"
+	"mempalace/core/storage"
 )
 
 func main() {

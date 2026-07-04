@@ -241,7 +241,7 @@ across dream runs:
 ## The "dream" consolidation job
 
 Merging by hand finds the fragments you already know about. The **dream job**
-(`cmd/dreamjob`) finds them for you: a separate microservice that scans the
+(the `dreamjob/` subproject) finds them for you: a separate microservice that scans the
 palace's rooms on a schedule, detects near-duplicate rooms, and files merge
 **proposals**. It **never merges anything itself** — a human or LLM reviews the
 proposals over MCP and applies or dismisses each. Prevention (write-time follow),
@@ -266,8 +266,9 @@ reviewer's decision (applied/dismissed) sticks.
 
 ### Its own container
 
-The job ships as a **dedicated image** (`server/Dockerfile.dreamjob`), separate
-from the server — it runs to completion and serves no HTTP.
+The job is its **own Go module and image** (`dreamjob/`, built from
+`dreamjob/Dockerfile`), sharing storage/embed/clustering code with the server via
+the `core/` module. It runs to completion and serves no HTTP.
 
 - **Kubernetes:** [`k8s/dreamjob-cronjob.yaml`](./k8s/dreamjob-cronjob.yaml) runs
   it daily (`schedule: "0 3 * * *"`, `concurrencyPolicy: Forbid`). It reuses the

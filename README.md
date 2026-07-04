@@ -365,6 +365,26 @@ go run ./cmd/mempalace
 
 The server creates all the tables it needs on first start.
 
+### Project layout
+
+The repo is a Go workspace (`go.work`) of three modules:
+
+- **`core/`** (`mempalace/core`) — shared library: storage, embedding client,
+  config, and the `consolidate` clustering logic.
+- **`server/`** (`mempalace/server`) — the MCP/HTTP server (imports `core`).
+- **`dreamjob/`** (`mempalace/dreamjob`) — the standalone room-consolidation job
+  (imports `core`), run as a Kubernetes CronJob. See
+  [ROOM_REDIRECTS.md](./ROOM_REDIRECTS.md).
+
+Run the dream job against the same database once:
+
+```bash
+cd dreamjob
+export MEMPALACE_DB_URL="postgres://user:pass@localhost:5432/mempalace"
+export EMBED_API_URL="http://localhost:11434/v1" EMBED_MODEL="embeddinggemma" EMBED_DIM="768"
+go run .
+```
+
 ---
 
 ## Test environment (PostgreSQL + pgvector + AGE)

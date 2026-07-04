@@ -1,13 +1,15 @@
 # ============================================================================
-# MemPalace "Dream" consolidation job — dedicated image
+# MemPalace "Dream" consolidation job — standalone subproject image
 #
-# Separate from the server image: this container runs to completion as a
-# Kubernetes CronJob, scans the palace's rooms, and writes near-duplicate merge
-# PROPOSALS to room_merge_candidates. It never serves HTTP and never mutates the
-# palace — proposals are reviewed via MCP and applied by a human/LLM.
+# Its own Go module (mempalace/dreamjob), sharing the storage/embed/consolidate
+# code with the server via the mempalace/core module (replace ../core). Runs to
+# completion as a Kubernetes CronJob, scans the palace's rooms, and writes
+# near-duplicate merge PROPOSALS to room_merge_candidates. It never serves HTTP
+# and never mutates the palace — proposals are reviewed via MCP and applied by a
+# human/LLM.
 #
-# Build and push:
-#   docker build -f server/Dockerfile.dreamjob -t your-registry.example.com/mempalace-dreamjob:latest server/
+# Build context is the REPO ROOT (needs both core/ and dreamjob/):
+#   docker build -f dreamjob/Dockerfile -t your-registry.example.com/mempalace-dreamjob:latest .
 #   docker push your-registry.example.com/mempalace-dreamjob:latest
 # ============================================================================
 
@@ -19,15 +21,17 @@ RUN apk add --no-cache ca-certificates git
 
 WORKDIR /src
 
-COPY go.mod go.sum ./
-RUN go mod download
+# core is a local module dependency (replace ../core); copy it first for caching.
+COPY core/ ./core/
+COPY dreamjob/go.mod dreamjob/go.sum ./dreamjob/
+RUN cd dreamjob && go mod download
 
-COPY . .
+COPY dreamjob/ ./dreamjob/
 
-RUN CGO_ENABLED=0 GOOS=linux go build \
+RUN cd dreamjob && CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-s -w" \
     -o /dreamjob \
-    ./cmd/dreamjob
+    .
 
 # ── Stage 2: runtime ────────────────────────────────────────────────────────
 FROM alpine:3.23

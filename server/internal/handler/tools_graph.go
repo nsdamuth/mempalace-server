@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"mempalace/server/internal/storage"
+	"mempalace/core/storage"
 )
 
 // registerGraphTools wires the palace-graph navigation tools: passive room

@@ -3,7 +3,7 @@ package handler
 import (
 	"testing"
 
-	"mempalace/server/internal/config"
+	"mempalace/core/config"
 )
 
 // upstreamTools is the full MCP tool surface of MemPalace (29 tools). The Go

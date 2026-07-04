@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
+	"mempalace/core/storage"
 	"mempalace/server/internal/llm"
-	"mempalace/server/internal/storage"
 )
 
 // completer is the slice of *llm.Client that the LLM extractor needs.

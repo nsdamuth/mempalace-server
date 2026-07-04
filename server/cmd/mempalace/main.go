@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
+	"mempalace/core/config"
+	"mempalace/core/embed"
+	"mempalace/core/storage"
 	"mempalace/server/internal/auth"
-	"mempalace/server/internal/config"
-	"mempalace/server/internal/embed"
 	"mempalace/server/internal/handler"
-	"mempalace/server/internal/storage"
 )
 
 func main() {

@@ -9,11 +9,11 @@ import (
 	"log"
 	"net/http"
 
+	"mempalace/core/config"
+	"mempalace/core/embed"
+	"mempalace/core/storage"
 	"mempalace/server/internal/auth"
-	"mempalace/server/internal/config"
-	"mempalace/server/internal/embed"
 	"mempalace/server/internal/graphextract"
-	"mempalace/server/internal/storage"
 )
 
 const (

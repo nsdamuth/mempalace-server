@@ -3,8 +3,8 @@ package handler
 import (
 	"testing"
 
-	"mempalace/server/internal/config"
-	"mempalace/server/internal/storage"
+	"mempalace/core/config"
+	"mempalace/core/storage"
 )
 
 // redir builds a redirect map from (fromRoom→toRoom) pairs, all in wing "w".

@@ -1,7 +1,7 @@
 # ============================================================================
 # MemPalace "Dream" consolidation job — CronJob
 #
-# Runs the dedicated dreamjob image (server/Dockerfile.dreamjob) once a day. It
+# Runs the dedicated dreamjob image (built from dreamjob/Dockerfile) once a day. It
 # scans the palace's rooms, detects near-duplicate rooms, and writes merge
 # PROPOSALS to the room_merge_candidates table. It never mutates the palace — a
 # human or LLM reviews the proposals via MCP (mempalace_list_merge_candidates)
@@ -42,7 +42,7 @@ spec:
             fsGroup: 1000
           containers:
             - name: dreamjob
-              # Dedicated dream-job image (server/Dockerfile.dreamjob).
+              # Dedicated dream-job image (built from dreamjob/Dockerfile).
               image: your-registry.example.com/mempalace-dreamjob:latest
               imagePullPolicy: Always
 
