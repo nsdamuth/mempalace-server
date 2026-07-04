@@ -63,8 +63,12 @@ func main() {
 	if err := storage.ProvisionSettings(ctx, pool, cfg.TenantID); err != nil {
 		log.Fatalf("provision settings: %v", err)
 	}
+	if err := storage.ProvisionRedirects(ctx, pool, cfg.TenantID); err != nil {
+		log.Fatalf("provision room redirects: %v", err)
+	}
 	triples := storage.NewTripleStore(pool, cfg.TenantID)
 	tunnels := storage.NewTunnelStore(pool, cfg.TenantID)
+	redirects := storage.NewRedirectStore(pool, cfg.TenantID)
 	settings := storage.NewSettingsStore(pool, cfg.TenantID)
 
 	// --- Entity-graph (Apache AGE) ---
@@ -82,7 +86,7 @@ func main() {
 
 	// --- HTTP server ---
 	mux := http.NewServeMux()
-	h := handler.New(col, graph, triples, tunnels, settings, embedClient, cfg)
+	h := handler.New(col, graph, triples, tunnels, redirects, settings, embedClient, cfg)
 	h.Register(mux)
 
 	// Optional plain REST/JSON API (off unless ENABLE_REST_API=true).

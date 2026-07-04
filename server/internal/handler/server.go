@@ -27,13 +27,14 @@ var supportedProtocolVersions = []string{
 
 // Server handles MCP JSON-RPC requests over HTTP.
 type Server struct {
-	col      *storage.Collection
-	graph    *storage.Graph // nil when AGE is not installed
-	triples  *storage.TripleStore
-	tunnels  *storage.TunnelStore
-	settings *storage.SettingsStore
-	embed    *embed.Client
-	cfg      config.Config
+	col       *storage.Collection
+	graph     *storage.Graph // nil when AGE is not installed
+	triples   *storage.TripleStore
+	tunnels   *storage.TunnelStore
+	redirects *storage.RedirectStore
+	settings  *storage.SettingsStore
+	embed     *embed.Client
+	cfg       config.Config
 	// extractor is non-nil only when knowledge-graph auto-population is enabled
 	// and viable (config on, AGE available, chosen strategy configured).
 	extractor graphextract.Extractor
@@ -46,17 +47,18 @@ type Server struct {
 // that case. The temporal KG (triples), tunnels and settings stores are plain
 // SQL and are always available.
 func New(col *storage.Collection, graph *storage.Graph, triples *storage.TripleStore,
-	tunnels *storage.TunnelStore, settings *storage.SettingsStore,
-	embedClient *embed.Client, cfg config.Config) *Server {
+	tunnels *storage.TunnelStore, redirects *storage.RedirectStore,
+	settings *storage.SettingsStore, embedClient *embed.Client, cfg config.Config) *Server {
 	s := &Server{
 		col: col, graph: graph, triples: triples, tunnels: tunnels,
-		settings: settings, embed: embedClient, cfg: cfg,
+		redirects: redirects, settings: settings, embed: embedClient, cfg: cfg,
 	}
 	s.extractor = buildExtractor(cfg, graph)
 	s.registerTools()
 	s.registerKGTools()
 	s.registerTripleTools()
 	s.registerGraphTools()
+	s.registerRedirectTools()
 	s.registerMetaTools()
 	return s
 }

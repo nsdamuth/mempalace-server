@@ -250,7 +250,27 @@ func (s *Server) toolListRooms(args map[string]any) (any, error) {
 		}
 		return list[i].Room < list[j].Room
 	})
-	return map[string]any{"rooms": list}, nil
+
+	// Surface redirects so merged/renamed room names stay discoverable (flagged
+	// as forwarded) even after their drawers moved to the canonical target.
+	out := map[string]any{"rooms": list}
+	if s.redirects != nil {
+		if reds, err := s.redirects.List(ctx); err == nil && len(reds) > 0 {
+			if wing != "" {
+				filtered := reds[:0]
+				for _, r := range reds {
+					if r.FromWing == wing || r.ToWing == wing {
+						filtered = append(filtered, r)
+					}
+				}
+				reds = filtered
+			}
+			if len(reds) > 0 {
+				out["redirects"] = reds
+			}
+		}
+	}
+	return out, nil
 }
 
 func (s *Server) toolGetTaxonomy(args map[string]any) (any, error) {
@@ -281,6 +301,13 @@ func (s *Server) toolSearch(args map[string]any) (any, error) {
 	maxDist := floatArg(args, "max_distance", 1.5)
 	wing, _ := args["wing"].(string)
 	room, _ := args["room"].(string)
+
+	// Resolve a redirected room filter so searching an old room name transparently
+	// searches its canonical target.
+	wing, room, redirected, err := s.resolveRoom(ctx, wing, room)
+	if err != nil {
+		return nil, err
+	}
 
 	vec, err := s.embed.EmbedOne(ctx, embedQuery)
 	if err != nil {
@@ -327,7 +354,7 @@ func (s *Server) toolSearch(args map[string]any) (any, error) {
 			Metadata:   d.Metadata,
 		})
 	}
-	return map[string]any{"results": results, "count": len(results)}, nil
+	return withRedirect(map[string]any{"results": results, "count": len(results)}, redirected), nil
 }
 
 func (s *Server) toolCheckDuplicate(args map[string]any) (any, error) {
@@ -396,6 +423,14 @@ func (s *Server) toolAddDrawer(args map[string]any) (any, error) {
 		return nil, fmt.Errorf("wing, room, and content are required")
 	}
 
+	// Follow any room redirect so filing into a merged/renamed room lands at the
+	// canonical target. The redirected block is surfaced so the caller sees where
+	// it actually went (warn-and-do, never silent).
+	wing, room, redirected, err := s.resolveRoom(ctx, wing, room)
+	if err != nil {
+		return nil, err
+	}
+
 	// Split bullet-point lists into individual drawers for precise retrieval
 	if bullets := splitBullets(content); len(bullets) > 0 {
 		ids := make([]string, 0, len(bullets))
@@ -437,13 +472,13 @@ func (s *Server) toolAddDrawer(args map[string]any) (any, error) {
 			stored++
 			s.populateGraph(ctx, graphextract.DrawerRef{Wing: wing, Room: room, DrawerID: ids[i], Content: bullet})
 		}
-		return map[string]any{
+		return withRedirect(map[string]any{
 			"success":        true,
 			"bullets_stored": stored,
 			"bullets_total":  len(bullets),
 			"wing":           wing,
 			"room":           room,
-		}, nil
+		}, redirected), nil
 	}
 
 	// Deterministic ID: sha256(wing/room/content[:500])[:16]
@@ -460,11 +495,11 @@ func (s *Server) toolAddDrawer(args map[string]any) (any, error) {
 		return nil, err
 	}
 	if exists {
-		return map[string]any{
+		return withRedirect(map[string]any{
 			"success":   true,
 			"reason":    "already_exists",
 			"drawer_id": drawerID,
-		}, nil
+		}, redirected), nil
 	}
 
 	vec, err := s.embed.EmbedOne(ctx, content)
@@ -488,12 +523,21 @@ func (s *Server) toolAddDrawer(args map[string]any) (any, error) {
 	}
 	s.populateGraph(ctx, graphextract.DrawerRef{Wing: wing, Room: room, DrawerID: drawerID, Content: content})
 
-	return map[string]any{
+	return withRedirect(map[string]any{
 		"success":   true,
 		"drawer_id": drawerID,
 		"wing":      wing,
 		"room":      room,
-	}, nil
+	}, redirected), nil
+}
+
+// withRedirect attaches the transparent-follow block to a response when a
+// redirect was actually followed, and returns the map unchanged otherwise.
+func withRedirect(resp map[string]any, ri *redirectInfo) map[string]any {
+	if ri != nil {
+		resp["redirected"] = ri
+	}
+	return resp
 }
 
 // splitBullets returns individual bullet items if the entire content is a bullet list (2+ items).
@@ -593,6 +637,11 @@ func (s *Server) toolListDrawers(args map[string]any) (any, error) {
 		limit = 20
 	}
 
+	wing, room, redirected, err := s.resolveRoom(ctx, wing, room)
+	if err != nil {
+		return nil, err
+	}
+
 	where := buildWhere(wing, room)
 	drawers, err := s.col.GetWhere(ctx, where, limit, offset)
 	if err != nil {
@@ -620,7 +669,7 @@ func (s *Server) toolListDrawers(args map[string]any) (any, error) {
 			FiledAt:  strMeta(d.Metadata, "filed_at"),
 		}
 	}
-	return map[string]any{"drawers": list, "count": len(list), "offset": offset}, nil
+	return withRedirect(map[string]any{"drawers": list, "count": len(list), "offset": offset}, redirected), nil
 }
 
 func (s *Server) toolUpdateDrawer(args map[string]any) (any, error) {

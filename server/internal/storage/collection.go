@@ -99,9 +99,11 @@ func (c *Collection) UpdateOne(ctx context.Context, id, newDoc string, newMeta m
 	idx := 1
 
 	if newDoc != "" {
-		setParts = append(setParts, fmt.Sprintf("document = $%d", idx)); idx++
+		setParts = append(setParts, fmt.Sprintf("document = $%d", idx))
+		idx++
 		args = append(args, newDoc)
-		setParts = append(setParts, fmt.Sprintf("embedding = $%d", idx)); idx++
+		setParts = append(setParts, fmt.Sprintf("embedding = $%d", idx))
+		idx++
 		args = append(args, pgvector.NewVector(newEmb))
 	}
 	if newMeta != nil {
@@ -109,7 +111,8 @@ func (c *Collection) UpdateOne(ctx context.Context, id, newDoc string, newMeta m
 		if err != nil {
 			return err
 		}
-		setParts = append(setParts, fmt.Sprintf("metadata = $%d", idx)); idx++
+		setParts = append(setParts, fmt.Sprintf("metadata = $%d", idx))
+		idx++
 		args = append(args, b)
 	}
 	if len(setParts) == 0 {
@@ -128,6 +131,26 @@ func (c *Collection) UpdateOne(ctx context.Context, id, newDoc string, newMeta m
 		return fmt.Errorf("drawer not found: %s", id)
 	}
 	return nil
+}
+
+// MoveRoom rewrites the wing/room metadata of every drawer in (fromWing,
+// fromRoom) to (toWing, toRoom) in a single statement. The room label is pure
+// metadata, so this touches neither the document nor its embedding — no
+// re-embedding is required. Drawer IDs are content/location-derived but are
+// left unchanged (opaque after a move), matching update_drawer's behaviour.
+// Returns the number of drawers moved.
+func (c *Collection) MoveRoom(ctx context.Context, fromWing, fromRoom, toWing, toRoom string) (int64, error) {
+	sql := fmt.Sprintf(`
+		UPDATE %s
+		SET metadata = jsonb_set(
+			jsonb_set(metadata, '{wing}', to_jsonb($1::text)),
+			'{room}', to_jsonb($2::text))
+		WHERE metadata ->> 'wing' = $3 AND metadata ->> 'room' = $4`, c.fqt)
+	tag, err := c.pool.Exec(ctx, sql, toWing, toRoom, fromWing, fromRoom)
+	if err != nil {
+		return 0, fmt.Errorf("move room: %w", err)
+	}
+	return tag.RowsAffected(), nil
 }
 
 // Delete removes drawers by ID.
