@@ -104,7 +104,7 @@ If you'd rather run the steps yourself, here they are.
 minikube start
 ```
 
-### 2. Build both images straight into minikube
+### 2. Build the images straight into minikube
 
 `minikube image build` builds inside the cluster's container runtime, so there
 is **no registry and no `docker push`**. The PostgreSQL image compiles Apache
@@ -114,10 +114,16 @@ vector` (and `age`) the first time the data directory is initialised — the
 server registers the `vector` type on its very first connection, so the type has
 to exist before the app boots. On an already-initialised volume it is a no-op.
 
+The `server` and `dreamjob` images share code via the local `mempalace/core`
+module, so their build context is the **repo root** (with `-f <dockerfile>`):
+
 ```bash
 minikube image build -t mempalace-postgres:local k8s/postgres
-minikube image build -t mempalace-go:local       server
+minikube image build -t mempalace-go:local        -f server/Dockerfile   .
+minikube image build -t mempalace-dreamjob:local  -f dreamjob/Dockerfile  .
 ```
+
+(`minikube-setup.sh` builds all three for you.)
 
 ### 3. Create the namespace and a Secret
 

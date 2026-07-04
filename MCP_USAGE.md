@@ -182,7 +182,7 @@ require a full-access key; the rest are readable with a read-only key too.
 
 #### Filing content: what `add_drawer` returns
 
-`mempalace_add_drawer` has **two surprising-but-intentional behaviors** that
+`mempalace_add_drawer` has **surprising-but-intentional behaviors** that
 integrators should handle explicitly:
 
 **1. Drawer IDs are deterministic → re-filing is idempotent.**
@@ -219,6 +219,18 @@ Callers that read `response.drawer_id` unconditionally will get `undefined`
 for bullet-list input. Branch on the presence of `bullets_stored` vs
 `drawer_id`.
 
+**3. The room you file into may be rewritten** (only when room redirects are
+enabled — see below). If the target room was merged/renamed, or is a
+casing/separator variant of an existing room, the drawer lands in the canonical
+room and the response carries a `redirected` and/or `canonicalized` block. The
+write still succeeds; read the returned `room` (and the block) to learn where it
+actually went — it is never silent.
+
+```jsonc
+{ "success": true, "drawer_id": "…", "room": "Authentication",
+  "canonicalized": { "from_room": "authentication", "to_room": "Authentication", "reason": "…" } }
+```
+
 ### Diary
 
 | Tool | What it does |
@@ -237,6 +249,26 @@ for bullet-list input. Branch on the presence of `bullets_stored` vs
 | `mempalace_list_tunnels` | List all explicit tunnels (optional wing filter) |
 | `mempalace_delete_tunnel` ✏️ | Delete a tunnel by ID |
 | `mempalace_graph_stats` | Palace graph overview |
+
+### Room hygiene — redirects & consolidation (opt-in)
+
+These tools appear **only when `MEMPALACE_ROOM_REDIRECTS=true`** (off by default).
+They keep the room taxonomy from fragmenting into near-duplicates: merge/rename
+rooms, and review the proposals from the [dream job](ROOM_REDIRECTS.md#the-dream-consolidation-job).
+
+| Tool | What it does |
+| --- | --- |
+| `mempalace_redirect_room` ✏️ | Merge/rename a room: forward an old room to a canonical one (optionally moving its drawers) |
+| `mempalace_resolve_room` | Resolve a room to its canonical target, following the redirect chain |
+| `mempalace_list_redirects` | List all active room redirects |
+| `mempalace_delete_redirect` ✏️ | Remove a redirect by its old (`from`) endpoint |
+| `mempalace_list_merge_candidates` | List the dream job's proposed room merges to review |
+| `mempalace_apply_merge_candidate` ✏️ | Apply a proposed merge by its candidate ID |
+| `mempalace_dismiss_merge_candidate` ✏️ | Reject a proposed merge (rooms stay separate) |
+
+> When enabled, `add_drawer` / `mempalace_search` / `mempalace_list_drawers` also
+> transparently follow redirects (see behavior 3 above and the
+> [full guide](ROOM_REDIRECTS.md)).
 
 ### Knowledge graph — facts over time
 
@@ -306,6 +338,7 @@ A well-behaved agent usually:
 | `unknown tool` | Tool name misspelled — check `tools/list` |
 | Search returns nothing | Embedding API unreachable, or no drawers yet |
 | Entity-graph tools error | Apache AGE not installed (other tools still work) |
+| `redirect` / `merge_candidate` tools missing | `MEMPALACE_ROOM_REDIRECTS` not enabled (they are opt-in) |
 | Server won't start | `MEMPALACE_DB_URL` not set, or DB unreachable |
 
 Check server logs and the health endpoint first:
