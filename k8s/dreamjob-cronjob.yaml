@@ -1,0 +1,92 @@
+# ============================================================================
+# MemPalace "Dream" consolidation job — CronJob
+#
+# Runs the dedicated dreamjob image (server/Dockerfile.dreamjob) once a day. It
+# scans the palace's rooms, detects near-duplicate rooms, and writes merge
+# PROPOSALS to the room_merge_candidates table. It never mutates the palace — a
+# human or LLM reviews the proposals via MCP (mempalace_list_merge_candidates)
+# and applies or dismisses each.
+#
+# Its own container image; reuses the same DB + embedding env as the server.
+# One CronJob per tenant (MEMPALACE_TENANT_ID); add more for more tenants.
+# ============================================================================
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mempalace-dreamjob
+  namespace: mempalace
+  labels:
+    app: mempalace
+    component: dreamjob
+spec:
+  schedule: "0 3 * * *"          # daily at 03:00 (cluster time)
+  timeZone: "Etc/UTC"
+  concurrencyPolicy: Forbid      # never overlap runs
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 900  # 15 min hard cap
+      template:
+        metadata:
+          labels:
+            app: mempalace
+            component: dreamjob
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+          containers:
+            - name: dreamjob
+              # Dedicated dream-job image (server/Dockerfile.dreamjob).
+              image: your-registry.example.com/mempalace-dreamjob:latest
+              imagePullPolicy: Always
+
+              env:
+                # -- Database (shared with the server) --
+                - name: MEMPALACE_DB_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: mempalace-secrets
+                      key: db-url
+
+                # -- Which tenant to consolidate --
+                - name: MEMPALACE_TENANT_ID
+                  value: "default"
+
+                # -- Embedding API (semantic tier) --
+                # If unreachable, the job falls back to the exact tier and still
+                # produces name-normalization proposals.
+                - name: EMBED_API_URL
+                  value: "http://ollama.mempalace.svc.cluster.local:11434/v1"
+                - name: EMBED_MODEL
+                  value: "embeddinggemma"
+                - name: EMBED_DIM
+                  value: "768"
+                # - name: EMBED_API_KEY
+                #   valueFrom:
+                #     secretKeyRef:
+                #       name: mempalace-secrets
+                #       key: embed-api-key
+
+                # -- Dream tuning --
+                # Turn the embedding (semantic) tier off to propose only exact
+                # name-normalization duplicates.
+                - name: MEMPALACE_DREAM_SEMANTIC
+                  value: "true"
+                # Cosine cutoff for the semantic tier (0..1). Higher = stricter,
+                # fewer proposals.
+                - name: MEMPALACE_DREAM_THRESHOLD
+                  value: "0.88"
+
+              resources:
+                requests:
+                  cpu: "50m"
+                  memory: "64Mi"
+                limits:
+                  cpu: "500m"
+                  memory: "256Mi"

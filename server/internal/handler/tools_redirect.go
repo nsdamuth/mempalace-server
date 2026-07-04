@@ -1,6 +1,9 @@
 package handler
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 // registerRedirectTools wires the room-redirect surface: directional forwarding
 // pointers left when a room is merged/renamed. These complement the write-time
@@ -68,6 +71,13 @@ func (s *Server) toolRedirectRoom(args map[string]any) (any, error) {
 		moveDrawers = *p
 	}
 
+	return s.applyRedirect(ctx, fromWing, fromRoom, toWing, toRoom, reason, moveDrawers)
+}
+
+// applyRedirect is the shared merge primitive behind both redirect_room and
+// apply_merge_candidate: cycle-guarded creation of a from→to redirect, plus an
+// optional move of the source room's drawers to the canonical terminal target.
+func (s *Server) applyRedirect(ctx context.Context, fromWing, fromRoom, toWing, toRoom, reason string, moveDrawers bool) (map[string]any, error) {
 	if fromWing == "" || fromRoom == "" || toWing == "" || toRoom == "" {
 		return nil, fmt.Errorf("from_wing, from_room, to_wing, and to_room are required")
 	}

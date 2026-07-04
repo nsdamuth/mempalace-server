@@ -67,14 +67,21 @@ func main() {
 	tunnels := storage.NewTunnelStore(pool, cfg.TenantID)
 	settings := storage.NewSettingsStore(pool, cfg.TenantID)
 
-	// Room redirects are opt-in (MEMPALACE_ROOM_REDIRECTS). When off, redirects
-	// stays nil: no redirect tools are exposed and resolveRoom is a no-op.
+	// Room redirects are opt-in (MEMPALACE_ROOM_REDIRECTS). When off, both stores
+	// stay nil: no redirect/merge tools are exposed and resolveRoom is a no-op.
+	// The merge-candidate table is shared with the dreamjob microservice, which
+	// provisions it independently.
 	var redirects *storage.RedirectStore
+	var mergeCandidates *storage.MergeCandidateStore
 	if cfg.RoomRedirects {
 		if err := storage.ProvisionRedirects(ctx, pool, cfg.TenantID); err != nil {
 			log.Fatalf("provision room redirects: %v", err)
 		}
+		if err := storage.ProvisionMergeCandidates(ctx, pool, cfg.TenantID); err != nil {
+			log.Fatalf("provision merge candidates: %v", err)
+		}
 		redirects = storage.NewRedirectStore(pool, cfg.TenantID)
+		mergeCandidates = storage.NewMergeCandidateStore(pool, cfg.TenantID)
 		log.Printf("room redirects enabled")
 	}
 
@@ -93,7 +100,7 @@ func main() {
 
 	// --- HTTP server ---
 	mux := http.NewServeMux()
-	h := handler.New(col, graph, triples, tunnels, redirects, settings, embedClient, cfg)
+	h := handler.New(col, graph, triples, tunnels, redirects, mergeCandidates, settings, embedClient, cfg)
 	h.Register(mux)
 
 	// Optional plain REST/JSON API (off unless ENABLE_REST_API=true).

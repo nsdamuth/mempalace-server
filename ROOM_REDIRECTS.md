@@ -57,9 +57,13 @@ Exposed only when `MEMPALACE_ROOM_REDIRECTS=true`:
 | `mempalace_resolve_room` | Resolve a room to its canonical target, following the whole chain. |
 | `mempalace_list_redirects` | List all active redirects with reasons. |
 | `mempalace_delete_redirect` | Remove a redirect by its old (`from`) endpoint. |
+| `mempalace_list_merge_candidates` | List the dream job's proposed merges to review. |
+| `mempalace_apply_merge_candidate` | Apply a proposed merge by its candidate ID. |
+| `mempalace_dismiss_merge_candidate` | Reject a proposed merge (rooms stay separate). |
 
 `mempalace_list_rooms` additionally surfaces active redirects (flagged), so a
-merged room name stays visible even after its drawers moved away.
+merged room name stays visible even after its drawers moved away. The last three
+tools review the output of the [dream consolidation job](#the-dream-consolidation-job).
 
 ---
 
@@ -186,6 +190,107 @@ visible as flagged redirects.
 ```
 
 Removing the redirect stops the forwarding; it does **not** move drawers back.
+
+---
+
+## The "dream" consolidation job
+
+Merging by hand finds the fragments you already know about. The **dream job**
+(`cmd/dreamjob`) finds them for you: a separate microservice that scans the
+palace's rooms on a schedule, detects near-duplicate rooms, and files merge
+**proposals**. It **never merges anything itself** — a human or LLM reviews the
+proposals over MCP and applies or dismisses each. Prevention (write-time follow),
+cure (redirects), and now discovery (the dream) form the full loop.
+
+### How it finds candidates
+
+Two tiers, both within a single wing (same room name in different wings is
+legitimately distinct):
+
+1. **Exact** — name normalization (lowercase, unify `-`/`_`/whitespace). `Auth`,
+   `auth`, `AUTH` collapse. Safe, deterministic.
+2. **Semantic** — embeds room names and clusters by cosine similarity above
+   `MEMPALACE_DREAM_THRESHOLD`. Catches `Auth` ≈ `Authentication`. If the
+   embedding endpoint is unreachable the job falls back to exact-only.
+
+The canonical target of each cluster is the room with the most drawers. Proposals
+are written to the `room_merge_candidates` table, keyed by their endpoints so
+re-runs are idempotent and a reviewer's decision (applied/dismissed) sticks.
+
+### Its own container
+
+The job ships as a **dedicated image** (`server/Dockerfile.dreamjob`), separate
+from the server — it runs to completion and serves no HTTP.
+
+- **Kubernetes:** [`k8s/dreamjob-cronjob.yaml`](./k8s/dreamjob-cronjob.yaml) runs
+  it daily (`schedule: "0 3 * * *"`, `concurrencyPolicy: Forbid`). It reuses the
+  server's DB + embedding env.
+- **Local (docker compose):** guarded by a profile, so it does not start with
+  `docker compose up`. Run on demand:
+
+  ```bash
+  docker compose run --rm dreamjob
+  ```
+
+Job-specific env:
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `MEMPALACE_DREAM_SEMANTIC` | `true` | Also cluster by embedding similarity (not just name normalization). |
+| `MEMPALACE_DREAM_THRESHOLD` | `0.88` | Cosine cutoff for the semantic tier (higher = stricter). |
+
+> The job does **not** need `MEMPALACE_ROOM_REDIRECTS` — it only writes
+> proposals. The review/apply tools below live in the server and require that
+> flag (they use the redirect machinery).
+
+### Reviewing and applying proposals (over MCP)
+
+These three tools are exposed when `MEMPALACE_ROOM_REDIRECTS=true`:
+
+```jsonc
+// tools/call → mempalace_list_merge_candidates   { "status": "pending" }
+```
+
+```json
+{
+  "candidates": [
+    {
+      "id": "9f1c2a7b3d4e5f60",
+      "from_wing": "backend", "from_room": "Auth",
+      "to_wing": "backend",   "to_room": "Authentication",
+      "tier": "semantic", "score": 0.94, "from_drawers": 4,
+      "status": "pending"
+    }
+  ],
+  "count": 1
+}
+```
+
+Apply one — it forwards the room, moves its drawers, and marks the candidate
+`applied`:
+
+```jsonc
+// tools/call → mempalace_apply_merge_candidate   { "id": "9f1c2a7b3d4e5f60" }
+```
+
+```json
+{
+  "success": true,
+  "redirect": { "from_room": "Auth", "to_room": "Authentication", "...": "..." },
+  "drawers_moved": 4,
+  "moved_to": { "wing": "backend", "room": "Authentication" },
+  "candidate_id": "9f1c2a7b3d4e5f60"
+}
+```
+
+Or reject it — the two rooms are genuinely different and should stay separate:
+
+```jsonc
+// tools/call → mempalace_dismiss_merge_candidate   { "id": "9f1c2a7b3d4e5f60" }
+```
+
+A dismissed pair stays out of future `pending` lists even if the next dream run
+proposes it again.
 
 ---
 

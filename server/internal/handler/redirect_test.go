@@ -98,7 +98,7 @@ var redirectToolNames = []string{
 
 // With the opt-in flag on, all four redirect tools are exposed.
 func TestRedirectToolsRegistered(t *testing.T) {
-	s := New(nil, nil, nil, nil, nil, nil, nil, config.Config{RoomRedirects: true})
+	s := New(nil, nil, nil, nil, nil, nil, nil, nil, config.Config{RoomRedirects: true})
 	for _, name := range redirectToolNames {
 		if _, ok := s.tools[name]; !ok {
 			t.Errorf("redirect tool not registered: %s", name)
@@ -112,7 +112,7 @@ func TestRedirectToolsRegistered(t *testing.T) {
 // With the flag off (default), the feature is absent — no redirect tools leak
 // into tools/list.
 func TestRedirectToolsAbsentWhenDisabled(t *testing.T) {
-	s := New(nil, nil, nil, nil, nil, nil, nil, config.Config{}) // RoomRedirects: false
+	s := New(nil, nil, nil, nil, nil, nil, nil, nil, config.Config{}) // RoomRedirects: false
 	for _, name := range redirectToolNames {
 		if _, ok := s.tools[name]; ok {
 			t.Errorf("redirect tool %s exposed while feature disabled", name)
