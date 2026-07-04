@@ -220,6 +220,14 @@ require a full-access key; the rest are readable with a read-only key too.
 | `mempalace_kg_delete_entity` ✏️ | Delete an entity and its relations |
 | `mempalace_kg_traverse` | Traverse the graph from an entity up to a depth |
 
+> **Populating the entity graph.** By default the graph is filled **only** by
+> the explicit `kg_add_entity` / `kg_add_relation` calls above — `add_drawer`
+> is storage-only and does not touch it. The server can optionally
+> auto-populate the graph on every `add_drawer` (structural links, or
+> LLM-extracted entities/relations); it is **off by default**. See
+> [Knowledge-graph auto-population](README.md#knowledge-graph-auto-population)
+> in the README to enable it.
+
 ### Meta
 
 | Tool | What it does |
