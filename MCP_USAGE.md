@@ -180,6 +180,45 @@ require a full-access key; the rest are readable with a read-only key too.
 | `mempalace_update_drawer` ✏️ | Update a drawer's content and/or metadata |
 | `mempalace_delete_drawer` ✏️ | Delete a drawer by ID |
 
+#### Filing content: what `add_drawer` returns
+
+`mempalace_add_drawer` has **two surprising-but-intentional behaviors** that
+integrators should handle explicitly:
+
+**1. Drawer IDs are deterministic → re-filing is idempotent.**
+The ID is `sha256(wing/room/content[:500])` (first 16 hex chars). Filing the
+same content into the same `wing`/`room` again does **not** error and does
+**not** create a duplicate — it returns the existing ID with a `reason`:
+
+```jsonc
+// First call
+{ "success": true, "drawer_id": "a1b2c3d4e5f60718" }
+// Second call with identical content
+{ "success": true, "reason": "already_exists", "drawer_id": "a1b2c3d4e5f60718" }
+```
+
+Callers should treat `already_exists` as success, and must not assume a
+returned ID means a *new* drawer was created.
+
+**2. Pure bullet lists are split into one drawer per bullet.**
+If the `content` is a bullet list, each bullet is stored as its own drawer
+(for precise retrieval). The response shape then changes — there is **no**
+`drawer_id`; you get counts instead:
+
+```jsonc
+{
+  "success": true,
+  "bullets_stored": 3,   // newly created this call
+  "bullets_total": 5,    // total bullets seen (2 already existed → idempotency)
+  "wing": "…",
+  "room": "…"
+}
+```
+
+Callers that read `response.drawer_id` unconditionally will get `undefined`
+for bullet-list input. Branch on the presence of `bullets_stored` vs
+`drawer_id`.
+
 ### Diary
 
 | Tool | What it does |
