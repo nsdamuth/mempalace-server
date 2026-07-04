@@ -99,7 +99,8 @@ ollama serve
 Open `docker-compose.yml` and set `EMBED_API_URL`.
 
 - Ollama runs on your host machine → use `http://host.docker.internal:11434/v1`
-  (macOS / Windows). On Linux, use your host IP.
+  (works on macOS, Windows *and* Linux — the compose file maps
+  `host.docker.internal` to the host gateway for you).
 - Ollama runs somewhere else → use that address.
 
 While you're there, **change `MCP_API_KEY`** to your own secret.

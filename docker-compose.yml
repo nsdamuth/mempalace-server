@@ -34,6 +34,11 @@ services:
     build: ./server
     ports:
       - "8000:8000"
+    # Make `host.docker.internal` resolve on native Linux Docker too (it is
+    # built in on macOS / Windows). Without this the default EMBED_API_URL
+    # below cannot reach an Ollama server running on the host.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       # Database
       MEMPALACE_DB_URL:     "postgres://mempalace:mempalace_local@db:5432/mempalace"
