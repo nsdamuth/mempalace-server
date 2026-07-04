@@ -26,6 +26,9 @@ On top of that, it builds connections between memories:
 - **Knowledge graph** — facts with time (what was true, and when).
 - **Entity graph** — people, things, and how they relate.
 - **Tunnels** — links between related memories.
+- **Room hygiene** *(opt-in)* — merge/rename rooms without fragmenting the
+  taxonomy, plus a scheduled "dream" job that proposes near-duplicate merges.
+  See [ROOM_REDIRECTS.md](./ROOM_REDIRECTS.md).
 
 Agents use all of this through ready-made MCP tools (search, add, recall,
 traverse, and more).
