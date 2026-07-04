@@ -18,7 +18,10 @@ import (
 )
 
 func main() {
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("failed to load configuration: %v", err)
+	}
 
 	if cfg.DatabaseURL == "" {
 		log.Fatal("MEMPALACE_DB_URL is required")
