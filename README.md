@@ -289,7 +289,39 @@ All settings come from environment variables.
 | `MEMPALACE_TENANT_ID` | Keeps data separate per tenant | `default` |
 | `MEMPALACE_HNSW_EF_SEARCH` | Search quality (higher = better, slower) | `100` |
 | `ENABLE_REST_API` | Turn on the optional REST/JSON API (see below) | `false` |
+| `MEMPALACE_GRAPH_AUTO_POPULATE` | Auto-populate the entity graph on `add_drawer` (see below) | `false` |
+| `MEMPALACE_GRAPH_EXTRACTOR` | Extraction strategy: `structural` or `llm` | `structural` |
+| `LLM_API_URL` | OpenAI-compatible chat API (only for `llm` extractor) | empty |
+| `LLM_API_KEY` | API key for the chat API (if needed) | empty |
+| `LLM_MODEL` | Chat model name (only for `llm` extractor) | empty |
 | `PORT` | Port the server listens on | `8000` |
+
+### Knowledge-graph auto-population
+
+By default, `add_drawer` is **storage-only**: it stores the memory (vector +
+metadata) and does **not** touch the Apache AGE entity graph. The graph is
+populated only by explicit `kg_add_entity` / `kg_add_relation` calls. This is a
+deliberate design choice — extraction is the client's job, which keeps the
+write path deterministic and free of LLM calls.
+
+If you *do* want the graph filled automatically, set
+`MEMPALACE_GRAPH_AUTO_POPULATE=true` and pick a strategy:
+
+- **`structural`** (default, no LLM) — deterministic. Every drawer becomes a
+  graph node linked to its room and wing:
+  `(Drawer) -[:IN_ROOM]-> (Room) -[:PART_OF]-> (Wing)`. These nodes carry the
+  `entity_type` `Drawer` / `Room` / `Wing`, so they stay distinguishable from
+  entities you add yourself. No network calls, no new dependencies.
+- **`llm`** — extracts real entities and relations from the drawer content via
+  an OpenAI-compatible chat model. Set `LLM_API_URL`, `LLM_MODEL` (and
+  `LLM_API_KEY` if required). Closer to what MemPalace-family users may expect,
+  at the cost of an LLM call in the `add_drawer` write path.
+
+Both require Apache AGE to be available; if it isn't, auto-population is
+silently disabled (a log line explains why). Population is **best-effort** — if
+extraction fails, the drawer is still filed; the graph write is just skipped and
+logged. Re-filing the same content is idempotent (graph MERGE), matching
+`add_drawer`'s existing idempotency.
 
 ### A note on `EMBED_DIM`
 
