@@ -58,7 +58,9 @@ func New(col *storage.Collection, graph *storage.Graph, triples *storage.TripleS
 	s.registerKGTools()
 	s.registerTripleTools()
 	s.registerGraphTools()
-	s.registerRedirectTools()
+	if cfg.RoomRedirects {
+		s.registerRedirectTools()
+	}
 	s.registerMetaTools()
 	return s
 }

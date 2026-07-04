@@ -3,6 +3,7 @@ package handler
 import (
 	"testing"
 
+	"mempalace/server/internal/config"
 	"mempalace/server/internal/storage"
 )
 
@@ -90,17 +91,31 @@ func TestResolveChain_LongChainWithinCap(t *testing.T) {
 	}
 }
 
+var redirectToolNames = []string{
+	"mempalace_redirect_room", "mempalace_list_redirects",
+	"mempalace_resolve_room", "mempalace_delete_redirect",
+}
+
+// With the opt-in flag on, all four redirect tools are exposed.
 func TestRedirectToolsRegistered(t *testing.T) {
-	s := newRegistry()
-	for _, name := range []string{
-		"mempalace_redirect_room", "mempalace_list_redirects",
-		"mempalace_resolve_room", "mempalace_delete_redirect",
-	} {
+	s := New(nil, nil, nil, nil, nil, nil, nil, config.Config{RoomRedirects: true})
+	for _, name := range redirectToolNames {
 		if _, ok := s.tools[name]; !ok {
 			t.Errorf("redirect tool not registered: %s", name)
 		}
 		if _, ok := s.router[name]; !ok {
 			t.Errorf("redirect tool %s has no router entry", name)
+		}
+	}
+}
+
+// With the flag off (default), the feature is absent — no redirect tools leak
+// into tools/list.
+func TestRedirectToolsAbsentWhenDisabled(t *testing.T) {
+	s := New(nil, nil, nil, nil, nil, nil, nil, config.Config{}) // RoomRedirects: false
+	for _, name := range redirectToolNames {
+		if _, ok := s.tools[name]; ok {
+			t.Errorf("redirect tool %s exposed while feature disabled", name)
 		}
 	}
 }

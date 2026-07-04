@@ -76,6 +76,10 @@ services:
       # LLM_API_URL: "http://host.docker.internal:11434/v1"
       # LLM_API_KEY: ""
       # LLM_MODEL:   "llama3.1"
+      # Room redirects (opt-in, off by default). When "true", exposes the
+      # redirect tools and makes add_drawer/search/list_drawers transparently
+      # follow a merged/renamed room to its canonical target. See ROOM_REDIRECTS.md.
+      # MEMPALACE_ROOM_REDIRECTS: "true"
     depends_on:
       db:
         condition: service_healthy

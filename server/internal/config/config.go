@@ -28,6 +28,12 @@ type Config struct {
 	// Optional plain REST/JSON API (off by default; MCP is always on)
 	EnableRESTAPI bool `env:"ENABLE_REST_API" envDefault:"false"`
 
+	// Room redirects (opt-in). When enabled, the redirect tools are exposed and
+	// add_drawer / search / list_drawers transparently follow a merged/renamed
+	// room to its canonical target. Default off — no redirect tools are
+	// registered and add_drawer stays storage-only, preserving existing behavior.
+	RoomRedirects bool `env:"MEMPALACE_ROOM_REDIRECTS" envDefault:"false"`
+
 	// Knowledge-graph auto-population (opt-in). When enabled, add_drawer also
 	// writes to the AGE graph using the selected extractor strategy. Default
 	// off — add_drawer stays storage-only, preserving existing behavior.

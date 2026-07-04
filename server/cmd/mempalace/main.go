@@ -63,13 +63,20 @@ func main() {
 	if err := storage.ProvisionSettings(ctx, pool, cfg.TenantID); err != nil {
 		log.Fatalf("provision settings: %v", err)
 	}
-	if err := storage.ProvisionRedirects(ctx, pool, cfg.TenantID); err != nil {
-		log.Fatalf("provision room redirects: %v", err)
-	}
 	triples := storage.NewTripleStore(pool, cfg.TenantID)
 	tunnels := storage.NewTunnelStore(pool, cfg.TenantID)
-	redirects := storage.NewRedirectStore(pool, cfg.TenantID)
 	settings := storage.NewSettingsStore(pool, cfg.TenantID)
+
+	// Room redirects are opt-in (MEMPALACE_ROOM_REDIRECTS). When off, redirects
+	// stays nil: no redirect tools are exposed and resolveRoom is a no-op.
+	var redirects *storage.RedirectStore
+	if cfg.RoomRedirects {
+		if err := storage.ProvisionRedirects(ctx, pool, cfg.TenantID); err != nil {
+			log.Fatalf("provision room redirects: %v", err)
+		}
+		redirects = storage.NewRedirectStore(pool, cfg.TenantID)
+		log.Printf("room redirects enabled")
+	}
 
 	// --- Entity-graph (Apache AGE) ---
 	// Best-effort: if AGE is not installed the server still starts,
