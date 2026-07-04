@@ -34,7 +34,7 @@ RUN cd dreamjob && CGO_ENABLED=0 GOOS=linux go build \
     .
 
 # ── Stage 2: runtime ────────────────────────────────────────────────────────
-FROM alpine:3.23
+FROM alpine:3.24
 
 RUN apk add --no-cache ca-certificates tzdata
 
