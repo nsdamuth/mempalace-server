@@ -291,6 +291,7 @@ All settings come from environment variables.
 | `ENABLE_REST_API` | Turn on the optional REST/JSON API (see below) | `false` |
 | `MEMPALACE_GRAPH_AUTO_POPULATE` | Auto-populate the entity graph on `add_drawer` (see below) | `false` |
 | `MEMPALACE_GRAPH_EXTRACTOR` | Extraction strategy: `structural` or `llm` | `structural` |
+| `MEMPALACE_ROOM_REDIRECTS` | Enable room merge/rename redirects (see below) | `false` |
 | `LLM_API_URL` | OpenAI-compatible chat API (only for `llm` extractor) | empty |
 | `LLM_API_KEY` | API key for the chat API (if needed) | empty |
 | `LLM_MODEL` | Chat model name (only for `llm` extractor) | empty |
@@ -322,6 +323,18 @@ silently disabled (a log line explains why). Population is **best-effort** — i
 extraction fails, the drawer is still filed; the graph write is just skipped and
 logged. Re-filing the same content is idempotent (graph MERGE), matching
 `add_drawer`'s existing idempotency.
+
+### Room redirects
+
+Off by default. Set `MEMPALACE_ROOM_REDIRECTS=true` to merge or rename rooms
+without fragmenting the taxonomy: an old room forwards to a canonical one, its
+drawers move with a pure metadata update (no re-embedding), and `add_drawer` /
+`mempalace_search` / `mempalace_list_drawers` transparently follow the redirect
+and echo where they landed. When the flag is off the feature is fully absent —
+the redirect tools are not registered and drawer/search behavior is unchanged.
+
+See **[ROOM_REDIRECTS.md](./ROOM_REDIRECTS.md)** for the tool list and a concrete
+`Auth → Authentication` merge walkthrough.
 
 ### A note on `EMBED_DIM`
 
