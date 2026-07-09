@@ -61,6 +61,7 @@ services:
       MEMPALACE_TENANT_ID:  "${MEMPALACE_TENANT_ID:-default}"
 
       EMBED_API_URL:        "${EMBED_API_URL:-http://host.docker.internal:11434/v1}"
+      EMBED_API_KEY:        "${EMBED_API_KEY:-}"
       EMBED_MODEL:          "${EMBED_MODEL:-embeddinggemma}"
       EMBED_DIM:            "${EMBED_DIM:-768}"
       # Optional plain REST/JSON API at /mp/api/v1 (MCP is always on).
