@@ -86,13 +86,21 @@ func main() {
 	}
 
 	// --- Entity-graph (Apache AGE) ---
-	// Best-effort: if AGE is not installed the server still starts,
-	// and the AGE-backed entity tools return a clear error message instead.
+	// AGE is opt-in. The plain-SQL temporal knowledge graph above remains
+	// available when AGE is disabled or unavailable.
 	var graph *storage.Graph
-	if err := storage.ProvisionGraph(ctx, pool, cfg.TenantID); err != nil {
-		log.Printf("entity graph (AGE) unavailable: %v", err)
+	if cfg.AGEEnabled {
+		if err := storage.ProvisionGraph(ctx, pool, cfg.TenantID); err != nil {
+			log.Printf("entity graph (AGE) unavailable: %v", err)
+		} else {
+			graph = storage.NewGraph(pool, cfg.TenantID)
+		}
 	} else {
-		graph = storage.NewGraph(pool, cfg.TenantID)
+		if cfg.GraphAutoPopulate {
+			log.Printf("graph auto-populate disabled because MEMPALACE_AGE_ENABLED=false")
+			cfg.GraphAutoPopulate = false
+		}
+		log.Printf("entity graph (AGE) disabled; temporal triple-store KG remains available")
 	}
 
 	// --- Embedding client ---

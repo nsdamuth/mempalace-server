@@ -15,7 +15,8 @@ import (
 	"mempalace/core/config"
 )
 
-// NewPool creates a pgxpool with pgvector types registered on every connection.
+// NewPool creates a pgxpool with pgvector registered on every connection.
+// Apache AGE session setup runs only when MEMPALACE_AGE_ENABLED=true.
 func NewPool(ctx context.Context, cfg config.Config) (*pgxpool.Pool, error) {
 	pcfg, err := pgxpool.ParseConfig(cfg.DatabaseURL)
 	if err != nil {
@@ -25,17 +26,23 @@ func NewPool(ctx context.Context, cfg config.Config) (*pgxpool.Pool, error) {
 	pcfg.MinConns = cfg.PoolMin
 	pcfg.MaxConns = cfg.PoolMax
 
-	// Register pgvector and AGE agtype codecs for every new connection.
+	// Register pgvector for every new connection. AGE setup is opt-in because
+	// managed PostgreSQL services may reject LOAD 'age' for application roles.
 	pcfg.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
 		// pgvector — required for vector columns
 		if err := pgxvec.RegisterTypes(ctx, conn); err != nil {
 			return err
 		}
+
+		if !cfg.AGEEnabled {
+			return nil
+		}
+
 		// AGE: load the shared library for this session.
 		// No-op when 'age' is already in shared_preload_libraries.
-		// Non-fatal: server still works without KG tools if AGE is absent.
+		// Non-fatal: server still works without AGE-backed entity tools.
 		if _, err := conn.Exec(ctx, "LOAD 'age'"); err != nil {
-			log.Printf("pool: LOAD age: %v (AGE not installed — KG tools unavailable)", err)
+			log.Printf("pool: LOAD age: %v (AGE unavailable — entity-graph tools disabled)", err)
 			return nil
 		}
 		// Include ag_catalog in search_path so AGE operators (@>, etc.) and

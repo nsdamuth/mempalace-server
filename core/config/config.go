@@ -40,9 +40,14 @@ type Config struct {
 	DreamSemantic  bool    `env:"MEMPALACE_DREAM_SEMANTIC" envDefault:"true"`  // also cluster by embedding similarity, not just name normalization
 	DreamThreshold float64 `env:"MEMPALACE_DREAM_THRESHOLD" envDefault:"0.88"` // cosine cutoff for the semantic tier (0..1)
 
+	// Apache AGE entity graph (opt-in). Managed PostgreSQL services commonly
+	// disallow LOAD 'age', so AGE is disabled unless explicitly enabled. The
+	// plain-SQL temporal knowledge graph remains available either way.
+	AGEEnabled bool `env:"MEMPALACE_AGE_ENABLED" envDefault:"false"`
+
 	// Knowledge-graph auto-population (opt-in). When enabled, add_drawer also
-	// writes to the AGE graph using the selected extractor strategy. Default
-	// off — add_drawer stays storage-only, preserving existing behavior.
+	// writes to the AGE graph using the selected extractor strategy. This is
+	// automatically disabled at startup when AGEEnabled is false.
 	GraphAutoPopulate bool   `env:"MEMPALACE_GRAPH_AUTO_POPULATE" envDefault:"false"`
 	GraphExtractor    string `env:"MEMPALACE_GRAPH_EXTRACTOR" envDefault:"structural"` // "structural" (deterministic, no LLM) or "llm"
 

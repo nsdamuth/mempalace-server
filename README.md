@@ -292,7 +292,8 @@ All settings come from environment variables.
 | `MEMPALACE_TENANT_ID` | Keeps data separate per tenant | `default` |
 | `MEMPALACE_HNSW_EF_SEARCH` | Search quality (higher = better, slower) | `100` |
 | `ENABLE_REST_API` | Turn on the optional REST/JSON API (see below) | `false` |
-| `MEMPALACE_GRAPH_AUTO_POPULATE` | Auto-populate the entity graph on `add_drawer` (see below) | `false` |
+| `MEMPALACE_AGE_ENABLED` | Enable Apache AGE session setup and entity-graph tools | `false` |
+| `MEMPALACE_GRAPH_AUTO_POPULATE` | Auto-populate the AGE entity graph on `add_drawer` (see below) | `false` |
 | `MEMPALACE_GRAPH_EXTRACTOR` | Extraction strategy: `structural` or `llm` | `structural` |
 | `MEMPALACE_ROOM_REDIRECTS` | Enable room merge/rename redirects (see below) | `false` |
 | `LLM_PROVIDER` | Chat dialect for the `llm` extractor: `openai` or `ollama` (see below) | `openai` |
@@ -309,8 +310,14 @@ populated only by explicit `kg_add_entity` / `kg_add_relation` calls. This is a
 deliberate design choice — extraction is the client's job, which keeps the
 write path deterministic and free of LLM calls.
 
-If you *do* want the graph filled automatically, set
-`MEMPALACE_GRAPH_AUTO_POPULATE=true` and pick a strategy:
+Apache AGE is disabled by default. On managed PostgreSQL services that do not
+permit application roles to run `LOAD 'age'`, leave
+`MEMPALACE_AGE_ENABLED=false`; the plain-SQL temporal knowledge graph remains
+available and no AGE session probe is attempted.
+
+If AGE is installed and permitted, set `MEMPALACE_AGE_ENABLED=true`. To also
+fill the AGE graph automatically, set `MEMPALACE_GRAPH_AUTO_POPULATE=true` and
+pick a strategy:
 
 - **`structural`** (default, no LLM) — deterministic. Every drawer becomes a
   graph node linked to its room and wing:
@@ -331,8 +338,9 @@ If you *do* want the graph filled automatically, set
       reasoning so **thinking models (qwen3, …) work**. Point `LLM_API_URL` at the
       Ollama root **without** `/v1` (e.g. `http://host:11434`).
 
-Both require Apache AGE to be available; if it isn't, auto-population is
-silently disabled (a log line explains why). Population is **best-effort** — if
+Both require `MEMPALACE_AGE_ENABLED=true` and Apache AGE to be available. If
+auto-population is requested while AGE is disabled, it is automatically disabled
+and a startup log line explains why. Population is **best-effort** — if
 extraction fails, the drawer is still filed; the graph write is just skipped and
 logged. Re-filing the same content is idempotent (graph MERGE), matching
 `add_drawer`'s existing idempotency.

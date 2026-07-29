@@ -73,7 +73,10 @@ services:
       MEMPALACE_HNSW_EF_SEARCH: "100"
       MEMPALACE_PG_POOL_MIN:    "2"
       MEMPALACE_PG_POOL_MAX:    "10"
-      # Knowledge-graph auto-population (opt-in, off by default).
+      # Apache AGE entity graph (opt-in, off by default). Leave false on
+      # managed PostgreSQL services that reject LOAD 'age'.
+      # MEMPALACE_AGE_ENABLED: "true"
+      # Knowledge-graph auto-population (also requires AGE enabled).
       # When "true", add_drawer also writes to the AGE entity graph.
       # MEMPALACE_GRAPH_AUTO_POPULATE: "true"
       # Strategy: "structural" (deterministic, no LLM — links
