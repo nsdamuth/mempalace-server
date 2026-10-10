@@ -191,7 +191,13 @@ func (s *Server) handleToolsCall(r *http.Request, id any, params json.RawMessage
 		p.Arguments = allowed
 	}
 
-	result, err := fn(p.Arguments)
+	var result any
+	var err error
+	if p.Name == "mempalace_search" {
+		result, err = s.toolSearchWithContext(r.Context(), p.Arguments)
+	} else {
+		result, err = fn(p.Arguments)
+	}
 	if err != nil {
 		log.Printf("tool %s error: %v", p.Name, err)
 		return errResp(id, codeInternalError, err.Error())

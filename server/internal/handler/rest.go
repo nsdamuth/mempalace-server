@@ -126,7 +126,13 @@ func (s *Server) runTool(w http.ResponseWriter, r *http.Request, tool string, ar
 		args = allowed
 	}
 
-	result, err := fn(args)
+	var result any
+	var err error
+	if tool == "mempalace_search" {
+		result, err = s.toolSearchWithContext(r.Context(), args)
+	} else {
+		result, err = fn(args)
+	}
 	if err != nil {
 		log.Printf("rest tool %s error: %v", tool, err)
 		writeRESTError(w, http.StatusBadRequest, err.Error())

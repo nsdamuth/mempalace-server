@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 	"time"
@@ -282,8 +284,32 @@ func (s *Server) toolGetTaxonomy(args map[string]any) (any, error) {
 	return map[string]any{"total": total, "taxonomy": tree}, nil
 }
 
+// toolSearch preserves the original MCP tool registration signature for callers
+// outside HTTP request dispatch. Both live HTTP transports use the request-
+// scoped variant below so client cancellation reaches embedding and PostgreSQL.
 func (s *Server) toolSearch(args map[string]any) (any, error) {
-	ctx := reqCtx()
+	return s.toolSearchWithContext(reqCtx(), args)
+}
+
+func (s *Server) toolSearchWithContext(ctx context.Context, args map[string]any) (any, error) {
+	// Keep the trace free of query text, user/room identifiers, returned drawer
+	// contents, provider URLs, credentials, and raw error messages.
+	started := time.Now()
+	stage := "validate"
+	var redirectMs, embeddingMs, storageMs int64
+	defer func() {
+		outcome := "failed"
+		switch {
+		case stage == "complete":
+			outcome = "ok"
+		case ctx.Err() == context.Canceled:
+			outcome = "canceled"
+		case ctx.Err() == context.DeadlineExceeded:
+			outcome = "deadline"
+		}
+		log.Printf("mempalace_search_trace outcome=%s stage=%s total_ms=%d redirect_ms=%d embedding_ms=%d storage_ms=%d",
+			outcome, stage, time.Since(started).Milliseconds(), redirectMs, embeddingMs, storageMs)
+	}()
 
 	rawQuery, _ := args["query"].(string)
 	if rawQuery == "" {
@@ -304,19 +330,28 @@ func (s *Server) toolSearch(args map[string]any) (any, error) {
 
 	// Resolve a redirected room filter so searching an old room name transparently
 	// searches its canonical target.
+	stage = "resolve_room"
+	stageStarted := time.Now()
 	wing, room, redirected, err := s.resolveRoom(ctx, wing, room)
+	redirectMs = time.Since(stageStarted).Milliseconds()
 	if err != nil {
 		return nil, err
 	}
 
+	stage = "embed_query"
+	stageStarted = time.Now()
 	vec, err := s.embed.EmbedOne(ctx, embedQuery)
+	embeddingMs = time.Since(stageStarted).Milliseconds()
 	if err != nil {
 		return nil, fmt.Errorf("embed query: %w", err)
 	}
 
+	stage = "hybrid_query"
+	stageStarted = time.Now()
 	where := buildWhere(wing, room)
 	// Hybrid: vector similarity + full-text search (RRF merge)
 	drawers, err := s.col.QueryHybrid(ctx, rawQuery, vec, where, limit)
+	storageMs = time.Since(stageStarted).Milliseconds()
 	if err != nil {
 		return nil, err
 	}
@@ -354,6 +389,7 @@ func (s *Server) toolSearch(args map[string]any) (any, error) {
 			Metadata:   d.Metadata,
 		})
 	}
+	stage = "complete"
 	return withRedirect(map[string]any{"results": results, "count": len(results)}, redirected), nil
 }
 
