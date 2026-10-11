@@ -313,7 +313,7 @@ func (s *Server) toolSearchWithContext(ctx context.Context, args map[string]any)
 
 	rawQuery, _ := args["query"].(string)
 	if rawQuery == "" {
-		return nil, fmt.Errorf("query is required")
+		return nil, errSearchQueryRequired
 	}
 	embedQuery := rawQuery
 	if ctxStr, ok := args["context"].(string); ok && ctxStr != "" {

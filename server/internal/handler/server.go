@@ -199,6 +199,15 @@ func (s *Server) handleToolsCall(r *http.Request, id any, params json.RawMessage
 		result, err = fn(p.Arguments)
 	}
 	if err != nil {
+		if p.Name == "mempalace_search" {
+			failure := classifySearchFailure(err)
+			log.Printf("mcp search failure code=%s http_status=%d", failure.Code, failure.HTTPStatus)
+			rpcCode := codeInternalError
+			if failure.HTTPStatus == http.StatusBadRequest {
+				rpcCode = codeInvalidParams
+			}
+			return errResp(id, rpcCode, failure.Code+": "+failure.Message)
+		}
 		log.Printf("tool %s error: %v", p.Name, err)
 		return errResp(id, codeInternalError, err.Error())
 	}

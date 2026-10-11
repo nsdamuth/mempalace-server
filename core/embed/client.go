@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"sort"
 	"strings"
@@ -65,23 +64,23 @@ func (c *Client) Embed(ctx context.Context, texts []string) ([][]float32, error)
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("embed request: %w", err)
+		return nil, &Failure{Kind: FailureTransport, Cause: err}
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("embed API returned HTTP %d", resp.StatusCode)
+		return nil, &Failure{Kind: FailureHTTPStatus, HTTPStatus: resp.StatusCode}
 	}
 
 	var result embedResp
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("embed decode: %w", err)
+		return nil, &Failure{Kind: FailureResponse, Cause: err}
 	}
 	if result.Error != nil {
-		return nil, fmt.Errorf("embed API error: %s", result.Error.Message)
+		return nil, &Failure{Kind: FailureResponse}
 	}
 	if len(result.Data) != len(texts) {
-		return nil, fmt.Errorf("expected %d embeddings, got %d", len(texts), len(result.Data))
+		return nil, &Failure{Kind: FailureResponse}
 	}
 
 	// API may return results out of order — sort by index

@@ -134,6 +134,12 @@ func (s *Server) runTool(w http.ResponseWriter, r *http.Request, tool string, ar
 		result, err = fn(args)
 	}
 	if err != nil {
+		if tool == "mempalace_search" {
+			failure := classifySearchFailure(err)
+			log.Printf("rest search failure code=%s http_status=%d", failure.Code, failure.HTTPStatus)
+			writeRESTSearchError(w, failure)
+			return
+		}
 		log.Printf("rest tool %s error: %v", tool, err)
 		writeRESTError(w, http.StatusBadRequest, err.Error())
 		return
@@ -143,6 +149,15 @@ func (s *Server) runTool(w http.ResponseWriter, r *http.Request, tool string, ar
 	if err := json.NewEncoder(w).Encode(result); err != nil {
 		log.Printf("rest write response: %v", err)
 	}
+}
+
+func writeRESTSearchError(w http.ResponseWriter, failure searchFailure) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(failure.HTTPStatus)
+	json.NewEncoder(w).Encode(map[string]string{ //nolint:errcheck
+		"error": failure.Message,
+		"code":  failure.Code,
+	})
 }
 
 func writeRESTError(w http.ResponseWriter, status int, msg string) {
